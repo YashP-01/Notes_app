@@ -1,13 +1,11 @@
 import 'dart:io';
-
-import 'package:flutter/cupertino.dart';
 import 'package:path/path.dart';
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 
 class DBHelper {
 
-  // singleton
+  // singleton constructor
   DBHelper._();
 
   static final DBHelper getInstance = DBHelper._();
@@ -20,7 +18,7 @@ class DBHelper {
 
   Database? myDB;
 
-  // db open (path -> if exists then open else create db)
+  /// db open (path -> if exists then open else create db)
 
   Future<Database> getDB() async{
 
@@ -53,9 +51,9 @@ class DBHelper {
 
   }
 
-  // all queries
+  /// all queries
 
-  //insertion
+  /// insertion
   Future<bool> addNote({required String mTitle, required String mDesc}) async{
 
     var db = await getDB();
@@ -69,7 +67,7 @@ class DBHelper {
 
   }
 
-  // reading all data
+  /// reading all data
   Future<List<Map<String, dynamic>>> getAllNotes() async{
 
     var db = await getDB();
@@ -78,7 +76,7 @@ class DBHelper {
     return mData;
   }
 
-  // update data
+  /// update data
   Future<bool> updateNote({required String mTitle, required String mDesc, required int sno}) async{
     var db = await getDB();
 
