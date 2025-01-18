@@ -1,3 +1,4 @@
+import 'package:db_practice/component/drawer.dart';
 import 'package:db_practice/data/local/db_helper.dart';
 import 'package:flutter/material.dart';
 
@@ -64,8 +65,9 @@ class _HomePageState extends State<HomePage> {
 
   @override
   Widget build(BuildContext context) {
-    // final mediaQuery = MediaQuery.of(context);
     return Scaffold(
+      backgroundColor: Theme.of(context).colorScheme.surface,
+      // backgroundColor: Colors.grey.shade500,
       appBar: AppBar(
         title: isSearching
             ? TextField(
@@ -73,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           decoration: InputDecoration(hintText: 'Search notes...'),
           onChanged: _filterNotes,
         )
-            : Text('Notes'),
+            : Center(child: Text('Notes')),
         actions: [
           isSearching
               ? IconButton(
@@ -87,6 +89,8 @@ class _HomePageState extends State<HomePage> {
         ],
       ),
 
+      drawer: const MyDrawer(),
+
       /// all notes viewed here
       body: filteredNotes.isNotEmpty
           ? ListView.builder(
@@ -97,15 +101,15 @@ class _HomePageState extends State<HomePage> {
               title: Text(filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE]),
               subtitle: Text(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC]),
               trailing: SizedBox(
-                width: 50,
+                width: 60,
                 child: Row(
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     Padding(
-                      padding: const EdgeInsets.only(right: 2.0),
+                      padding: const EdgeInsets.only(right: 6.0),
                       child: InkWell(
+                        /// note to be updated here
                           onTap: () {
-                            /// note to be updated here
                             showModalBottomSheet(
                                 context: context,
                                 isScrollControlled: true,
@@ -125,6 +129,7 @@ class _HomePageState extends State<HomePage> {
                     ),
 
                     InkWell(
+                      /// note to be delete
                       onTap: () async {
                         bool check = await dbRef!.deleteNote(
                             sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
@@ -146,6 +151,7 @@ class _HomePageState extends State<HomePage> {
       ),
 
       floatingActionButton: FloatingActionButton(
+        backgroundColor: Colors.grey.shade500,
         onPressed: () async {
           /// note to be added from here
           showModalBottomSheet(
@@ -162,6 +168,7 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
+
 
   Widget getBottomSheetWidget({bool isUpdate = false, int sno = 0}) {
     return SingleChildScrollView(

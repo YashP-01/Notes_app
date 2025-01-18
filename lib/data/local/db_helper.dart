@@ -48,11 +48,9 @@ class DBHelper {
       //
 
     }, version: 1);
-
   }
 
   /// all queries
-
   /// insertion
   Future<bool> addNote({required String mTitle, required String mDesc}) async{
 
@@ -97,5 +95,4 @@ class DBHelper {
 
     return rowsEffected>0;
   }
-
 }
