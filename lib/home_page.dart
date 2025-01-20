@@ -1,6 +1,7 @@
 import 'package:db_practice/component/drawer.dart';
 import 'package:db_practice/data/local/db_helper.dart';
 import 'package:flutter/material.dart';
+import 'package:flutter_slidable/flutter_slidable.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -67,7 +68,6 @@ class _HomePageState extends State<HomePage> {
   Widget build(BuildContext context) {
     return Scaffold(
       backgroundColor: Theme.of(context).colorScheme.surface,
-      // backgroundColor: Colors.grey.shade500,
       appBar: AppBar(
         title: isSearching
             ? TextField(
@@ -75,7 +75,7 @@ class _HomePageState extends State<HomePage> {
           decoration: InputDecoration(hintText: 'Search notes...'),
           onChanged: _filterNotes,
         )
-            : Center(child: Text('Notes')),
+            : Center(child: Text('Notes', style: TextStyle(fontFamily: 'BethEllen'),)),    /// appbar title
         actions: [
           isSearching
               ? IconButton(
@@ -91,69 +91,89 @@ class _HomePageState extends State<HomePage> {
 
       drawer: const MyDrawer(),
 
-      /// all notes viewed here
       body: filteredNotes.isNotEmpty
           ? ListView.builder(
-          itemCount: filteredNotes.length,
-          itemBuilder: (_, index) {
-            return ListTile(
-              leading: Text('${index + 1}'),
-              title: Text(filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE]),
-              subtitle: Text(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC]),
-              trailing: SizedBox(
-                width: 60,
-                child: Row(
-                  mainAxisAlignment: MainAxisAlignment.center,
-                  children: [
-                    Padding(
-                      padding: const EdgeInsets.only(right: 6.0),
-                      child: InkWell(
-                        /// note to be updated here
-                          onTap: () {
-                            showModalBottomSheet(
-                                context: context,
-                                isScrollControlled: true,
-                                useSafeArea: true,
-                                builder: (context) {
-                                  titleController.text = filteredNotes[index]
-                                  [DBHelper.COLUMN_NOTE_TITLE];
-                                  descController.text = filteredNotes[index]
-                                  [DBHelper.COLUMN_NOTE_DESC];
-                                  return getBottomSheetWidget(
-                                      isUpdate: true,
-                                      sno: filteredNotes[index]
-                                      [DBHelper.COLUMN_NOTE_SNO]);
-                                });
-                          },
-                          child: Icon(Icons.edit)),
-                    ),
-
-                    InkWell(
-                      /// note to be delete
-                      onTap: () async {
-                        bool check = await dbRef!.deleteNote(
-                            sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
-                        if (check) {
-                          getNotes();
-                        }
-                      },
-                      child: Icon(
-                        Icons.delete,
-                        color: Colors.red,
-                      ),
-                    ),
-                  ],
+        itemCount: filteredNotes.length,
+        itemBuilder: (_, index) {
+          return Slidable(
+            endActionPane: ActionPane(
+              motion: StretchMotion(),
+              children: [
+                SlidableAction(
+                  onPressed: (context) {
+                    /// Edit note
+                    showModalBottomSheet(
+                        context: context,
+                        isScrollControlled: true,
+                        useSafeArea: true,
+                        builder: (context) {
+                          titleController.text =
+                          filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE];
+                          descController.text =
+                          filteredNotes[index][DBHelper.COLUMN_NOTE_DESC];
+                          return getBottomSheetWidget(
+                              isUpdate: true,
+                              sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+                        });
+                  },
+                  icon: Icons.edit,
+                  backgroundColor: Colors.grey.shade300,
+                  label: 'Edit',
                 ),
-              ),
-            );
-          })
-          : Center(child: Text('No Notes yet!!'),
-      ),
+                SlidableAction(
+                  onPressed: (context) async {
+                    /// Delete note
+                    bool check = await dbRef!.deleteNote(
+                        sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+                    if (check) {
+                      getNotes();
+                    }
+                  },
+                  icon: Icons.delete,
+                  label: 'Delete',
+                  backgroundColor: Colors.red,
+                ),
+              ],
+            ),
 
+            /// main notes list
+            child: ListTile(
+              leading: Text(
+                  '${index + 1}',
+                  style: TextStyle(
+                    fontSize: 15,
+                  ),
+              ),
+              title: Text(
+                filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                style: TextStyle(
+                  fontSize: 19,
+                  fontFamily: 'Smooch',
+                  fontWeight: FontWeight.w500
+                ),
+
+              ),
+              subtitle: Text(
+                filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                style: TextStyle(
+                  fontSize: 14,
+                  fontFamily: 'Roboto',
+                  fontWeight: FontWeight.w500,
+                ),
+
+              ),
+            ),
+          );
+        },
+      )
+          : Center(child: Text(
+          'No Notes yet!!',
+          style: TextStyle(fontFamily: 'BethEllen'),
+      )),
       floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.grey.shade500,
+        backgroundColor: Colors.teal[400],
         onPressed: () async {
-          /// note to be added from here
+          // Add note
           showModalBottomSheet(
               context: context,
               isScrollControlled: true,
@@ -164,11 +184,10 @@ class _HomePageState extends State<HomePage> {
                 return getBottomSheetWidget();
               });
         },
-        child: Icon(Icons.add),
+        child: Icon(Icons.add, color: Colors.grey.shade700,),
       ),
     );
   }
-
 
   Widget getBottomSheetWidget({bool isUpdate = false, int sno = 0}) {
     return SingleChildScrollView(
@@ -207,7 +226,7 @@ class _HomePageState extends State<HomePage> {
               maxLines: 4,
               decoration: InputDecoration(
                   hintText: "Enter desc here",
-                  label: Text('Desc'),
+                  label: Text('Description'),
                   focusedBorder: OutlineInputBorder(
                     borderRadius: BorderRadius.circular(11),
                   ),
@@ -233,15 +252,13 @@ class _HomePageState extends State<HomePage> {
                             bool check = isUpdate
                                 ? await dbRef!.updateNote(
                                 mTitle: title, mDesc: desc, sno: sno)
-                                : await dbRef!
-                                .addNote(mTitle: title, mDesc: desc);
+                                : await dbRef!.addNote(mTitle: title, mDesc: desc);
                             if (check) {
                               getNotes();
                             }
                           } else {
                             ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text(
-                                    'Please fill all the required blanks!!')));
+                                content: Text('Please fill all the required blanks!!')));
                           }
 
                           titleController.clear();

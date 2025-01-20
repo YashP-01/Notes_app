@@ -31,7 +31,7 @@ class MyDrawer extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 25.0),
                   child: ListTile(
-                    title: Text("Home"),
+                    title: Text("H o m e", style: TextStyle(fontWeight: FontWeight.bold),),
                     leading: Icon(Icons.home),
                     onTap: (){
                       Navigator.pop(context);
@@ -43,7 +43,7 @@ class MyDrawer extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 25.0),
                   child: ListTile(
-                    title: Text("Settings"),
+                    title: Text("S e t t i n g s", style: TextStyle(fontWeight: FontWeight.bold),),
                     leading: Icon(Icons.settings),
                     onTap: (){
                       Navigator.push(context, MaterialPageRoute(builder: (context) => SettingsPage(),
@@ -55,7 +55,7 @@ class MyDrawer extends StatelessWidget {
                 Padding(
                   padding: const EdgeInsets.only(left: 25.0),
                   child: ListTile(
-                    title: Text("Animation"),
+                    title: Text("A n i m a t i o n", style: TextStyle(fontWeight: FontWeight.bold),),
                     leading: Icon(Icons.animation),
                     onTap: (){
                       Navigator.push(context, MaterialPageRoute(builder: (context) => LoadingAnimation(),

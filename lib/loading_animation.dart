@@ -1,3 +1,4 @@
+import 'package:db_practice/splash_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 
@@ -14,11 +15,17 @@ class LoadingAnimation extends StatelessWidget {
         actions: [
           Padding(
             padding: const EdgeInsets.only(right: 8.0),
-            child: SizedBox(
-              height: 50,
-                width: 50,
-                child: Lottie.asset('assets/animation/notes_icon.json'),
+            child: GestureDetector(
+              onTap: (){
+                Navigator.push(context, MaterialPageRoute(builder: (context) => const SplashScreen()),
+                );
+              },
+              child: SizedBox(
+                height: 50,
+                  width: 50,
+                  child: Lottie.asset('assets/animation/notes_icon.json'),
 
+              ),
             ),
           ),
         ],
