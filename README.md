@@ -1,4 +1,4 @@
-# db_practice
+# Notes Application
 
 A new Flutter project.
 
