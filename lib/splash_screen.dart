@@ -11,7 +11,7 @@ class SplashScreen extends StatelessWidget {
   Widget build(BuildContext context) {
     return FlutterSplashScreen(
       useImmersiveMode: false,
-      duration: Duration(seconds: 6),
+      duration: Duration(seconds: 6),   /// have to make changes for different time duration
       nextScreen: HomePage(),
       backgroundColor: Theme.of(context).colorScheme.surface,
       splashScreenBody: Center(

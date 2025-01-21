@@ -1,7 +1,9 @@
 import 'package:db_practice/component/drawer.dart';
 import 'package:db_practice/data/local/db_helper.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_slidable/flutter_slidable.dart';
+import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
+import 'edit_page.dart';
+import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -9,7 +11,6 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
-
   List<Map<String, dynamic>> filteredNotes = [];
   bool isSearching = false;
   TextEditingController searchController = TextEditingController();
@@ -64,117 +65,162 @@ class _HomePageState extends State<HomePage> {
     });
   }
 
+  Future<void> _confirmDelete(int sno) async {
+    // Show confirmation dialog before deleting
+    bool? confirmDelete = await showDialog(
+      context: context,
+      builder: (BuildContext context) {
+        return AlertDialog(
+          title: Text("Delete Note"),
+          content: Text("Are you sure you want to delete this note?"),
+          actions: [
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, false); // Cancel the deletion
+              },
+              child: Text("Cancel"),
+            ),
+            TextButton(
+              onPressed: () {
+                Navigator.pop(context, true); // Confirm the deletion
+              },
+              child: Text("Delete"),
+            ),
+          ],
+        );
+      },
+    );
+
+    // If user confirmed, delete the note
+    if (confirmDelete != null && confirmDelete) {
+      bool check = await dbRef!.deleteNote(sno: sno);
+      if (check) {
+        getNotes(); // Refresh the list after deletion
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('Note deleted successfully')),
+        );
+      }
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Theme.of(context).colorScheme.surface,
-      appBar: AppBar(
-        title: isSearching
-            ? TextField(
-          controller: searchController,
-          decoration: InputDecoration(hintText: 'Search notes...'),
-          onChanged: _filterNotes,
-        )
-            : Center(child: Text('Notes', style: TextStyle(fontFamily: 'BethEllen'),)),    /// appbar title
-        actions: [
-          isSearching
-              ? IconButton(
-            icon: Icon(Icons.clear),
-            onPressed: _stopSearch,
+    return LiquidPullToRefresh(
+      onRefresh: () async {
+        await allNotes;
+      },
+      child: Scaffold(
+        backgroundColor: Theme.of(context).colorScheme.surface,
+        appBar: AppBar(
+          title: isSearching
+              ? TextField(
+            controller: searchController,
+            decoration: InputDecoration(hintText: 'Search notes...'),
+            onChanged: _filterNotes,
           )
-              : IconButton(
-            icon: Icon(Icons.search),
-            onPressed: _startSearch,
+              : Center(
+            child: Text(
+              'Notes',
+              style: TextStyle(fontFamily: 'BethEllen'),
+            ),
           ),
-        ],
-      ),
-
-      drawer: const MyDrawer(),
-
-      body: filteredNotes.isNotEmpty
-          ? ListView.builder(
-        itemCount: filteredNotes.length,
-        itemBuilder: (_, index) {
-          return Slidable(
-            endActionPane: ActionPane(
-              motion: StretchMotion(),
-              children: [
-                SlidableAction(
-                  onPressed: (context) {
-                    /// Edit note
-                    showModalBottomSheet(
-                        context: context,
-                        isScrollControlled: true,
-                        useSafeArea: true,
-                        builder: (context) {
-                          titleController.text =
-                          filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE];
-                          descController.text =
-                          filteredNotes[index][DBHelper.COLUMN_NOTE_DESC];
-                          return getBottomSheetWidget(
-                              isUpdate: true,
-                              sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
-                        });
-                  },
-                  icon: Icons.edit,
-                  backgroundColor: Colors.grey.shade300,
-                  label: 'Edit',
-                ),
-                SlidableAction(
-                  onPressed: (context) async {
-                    /// Delete note
-                    bool check = await dbRef!.deleteNote(
-                        sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
-                    if (check) {
-                      getNotes();
-                    }
-                  },
-                  icon: Icons.delete,
-                  label: 'Delete',
-                  backgroundColor: Colors.red,
-                ),
-              ],
+          actions: [
+            isSearching
+                ? IconButton(
+              icon: Icon(Icons.clear),
+              onPressed: _stopSearch,
+            )
+                : IconButton(
+              icon: Icon(Icons.search),
+              onPressed: _startSearch,
             ),
+          ],
+        ),
+        drawer: const MyDrawer(),
 
-            /// main notes list
-            child: ListTile(
-              leading: Text(
-                  '${index + 1}',
-                  style: TextStyle(
-                    fontSize: 15,
-                  ),
-              ),
-              title: Text(
-                filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-                style: TextStyle(
-                  fontSize: 19,
-                  fontFamily: 'Smooch',
-                  fontWeight: FontWeight.w500
-                ),
-
-              ),
-              subtitle: Text(
-                filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                style: TextStyle(
-                  fontSize: 14,
-                  fontFamily: 'Roboto',
-                  fontWeight: FontWeight.w500,
-                ),
-
+        body: filteredNotes.isNotEmpty
+            ? CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.all(10),
+              sliver: SliverStaggeredGrid.countBuilder(
+                crossAxisCount: 2,
+                itemCount: filteredNotes.length,
+                staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                mainAxisSpacing: 7,
+                crossAxisSpacing: 3,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      // On tap, navigate to the EditPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditPage(
+                            title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                            description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                            sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+                          ),
+                        ),
+                      ).then((value){
+                        if(value == true){
+                          getNotes();
+                        }
+                      });
+                    },
+                    onLongPress: () {
+                      // Show the confirmation dialog for deleting the note
+                      _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+                    },
+                    child: Card(
+                      elevation: 4,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            leading: Text(
+                              '${index + 1}',
+                              style: TextStyle(
+                                fontSize: 15,
+                              ),
+                            ),
+                            title: Text(
+                              filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                              style: TextStyle(
+                                fontSize: 19,
+                                fontFamily: 'Smooch',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                            subtitle: Text(
+                              filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                              maxLines: 9,
+                              style: TextStyle(
+                                fontSize: 14,
+                                fontFamily: 'Roboto',
+                                fontWeight: FontWeight.w500,
+                              ),
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  );
+                },
               ),
             ),
-          );
-        },
-      )
-          : Center(child: Text(
-          'No Notes yet!!',
-          style: TextStyle(fontFamily: 'BethEllen'),
-      )),
-      floatingActionButton: FloatingActionButton(
-        backgroundColor: Colors.teal[400],
-        onPressed: () async {
-          // Add note
-          showModalBottomSheet(
+          ],
+        )
+            : Center(
+          child: Text(
+            'No Notes yet!!',
+            style: TextStyle(fontFamily: 'BethEllen'),
+          ),
+        ),
+        floatingActionButton: FloatingActionButton(
+          backgroundColor: Colors.teal[400],
+          onPressed: () async {
+            // Add note - open the same bottom sheet to add a new note
+            showModalBottomSheet(
               context: context,
               isScrollControlled: true,
               useSafeArea: true,
@@ -182,9 +228,14 @@ class _HomePageState extends State<HomePage> {
                 titleController.clear();
                 descController.clear();
                 return getBottomSheetWidget();
-              });
-        },
-        child: Icon(Icons.add, color: Colors.grey.shade700,),
+              },
+            );
+          },
+          child: Icon(
+            Icons.add,
+            color: Colors.grey.shade700,
+          ),
+        ),
       ),
     );
   }
@@ -199,9 +250,7 @@ class _HomePageState extends State<HomePage> {
           children: [
             Text(
               isUpdate ? 'Update Note' : 'Add Note',
-              style: TextStyle(
-                  fontSize: 25,
-                  fontWeight: FontWeight.bold),
+              style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
             SizedBox(
               height: 21,
@@ -209,14 +258,15 @@ class _HomePageState extends State<HomePage> {
             TextField(
               controller: titleController,
               decoration: InputDecoration(
-                  hintText: "Enter title here",
-                  label: Text('Title'),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                  )),
+                hintText: "Enter title here",
+                label: Text('Title'),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
             ),
             SizedBox(
               height: 11,
@@ -225,14 +275,15 @@ class _HomePageState extends State<HomePage> {
               controller: descController,
               maxLines: 4,
               decoration: InputDecoration(
-                  hintText: "Enter desc here",
-                  label: Text('Description'),
-                  focusedBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                  ),
-                  enabledBorder: OutlineInputBorder(
-                    borderRadius: BorderRadius.circular(11),
-                  )),
+                hintText: "Enter desc here",
+                label: Text('Description'),
+                focusedBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+                enabledBorder: OutlineInputBorder(
+                  borderRadius: BorderRadius.circular(11),
+                ),
+              ),
             ),
             SizedBox(
               height: 11,
@@ -240,46 +291,55 @@ class _HomePageState extends State<HomePage> {
             Row(
               children: [
                 Expanded(
-                    child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                            side: BorderSide(width: 1),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(11))),
-                        onPressed: () async {
-                          var title = titleController.text;
-                          var desc = descController.text;
-                          if (title.isNotEmpty && desc.isNotEmpty) {
-                            bool check = isUpdate
-                                ? await dbRef!.updateNote(
-                                mTitle: title, mDesc: desc, sno: sno)
-                                : await dbRef!.addNote(mTitle: title, mDesc: desc);
-                            if (check) {
-                              getNotes();
-                            }
-                          } else {
-                            ScaffoldMessenger.of(context).showSnackBar(SnackBar(
-                                content: Text('Please fill all the required blanks!!')));
-                          }
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(width: 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                    onPressed: () async {
+                      var title = titleController.text;
+                      var desc = descController.text;
+                      if (title.isNotEmpty && desc.isNotEmpty) {
+                        bool check = isUpdate
+                            ? await dbRef!.updateNote(
+                            mTitle: title, mDesc: desc, sno: sno)
+                            : await dbRef!.addNote(mTitle: title, mDesc: desc);
+                        if (check) {
+                          getNotes();
+                        }
+                      } else {
+                        ScaffoldMessenger.of(context).showSnackBar(
+                          SnackBar(content: Text('Please fill all the required blanks!!')),
+                        );
+                      }
 
-                          titleController.clear();
-                          descController.clear();
+                      titleController.clear();
+                      descController.clear();
 
-                          Navigator.pop(context);
-                        },
-                        child: Text(isUpdate ? 'Update Note' : 'Add Note'))),
+                      Navigator.pop(context);
+                    },
+                    child: Text(isUpdate ? 'Update Note' : 'Add Note'),
+                  ),
+                ),
                 SizedBox(
                   width: 11,
                 ),
                 Expanded(
-                    child: OutlinedButton(
-                        style: OutlinedButton.styleFrom(
-                            side: BorderSide(width: 1),
-                            shape: RoundedRectangleBorder(
-                                borderRadius: BorderRadius.circular(11))),
-                        onPressed: () {
-                          Navigator.pop(context);
-                        },
-                        child: Text('Cancel'))),
+                  child: OutlinedButton(
+                    style: OutlinedButton.styleFrom(
+                      side: BorderSide(width: 1),
+                      shape: RoundedRectangleBorder(
+                        borderRadius: BorderRadius.circular(11),
+                      ),
+                    ),
+                    onPressed: () {
+                      Navigator.pop(context); // Cancel and return to HomePage
+                    },
+                    child: Text('Cancel'),
+                  ),
+                ),
               ],
             ),
           ],
