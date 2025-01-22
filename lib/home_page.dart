@@ -18,6 +18,7 @@ class _HomePageState extends State<HomePage> {
   /// controllers
   TextEditingController titleController = TextEditingController();
   TextEditingController descController = TextEditingController();
+  FocusNode _focusNode = FocusNode();
 
   List<Map<String, dynamic>> allNotes = [];
   DBHelper? dbRef;
@@ -38,6 +39,7 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _startSearch() {
+    FocusScope.of(context).requestFocus(_focusNode);
     setState(() {
       isSearching = true;
     });
@@ -172,32 +174,45 @@ class _HomePageState extends State<HomePage> {
                       // Show the confirmation dialog for deleting the note
                       _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
                     },
+
                     child: Card(
                       elevation: 4,
                       child: Column(
                         children: [
                           ListTile(
-                            leading: Text(
-                              '${index + 1}',
-                              style: TextStyle(
-                                fontSize: 15,
-                              ),
+                            title: Row(
+                              children: [
+                                /// notes index
+                                Text(
+                                  '${index + 1}',
+                                  style: TextStyle(
+                                    fontSize: 15,
+                                  ),
+                                ),
+
+                                SizedBox(width: 8,),
+                                /// notes title
+                                Text(
+                                  filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontFamily: 'Smooch',
+                                    fontWeight: FontWeight.w500,
+                                  ),
+                                ),
+                              ],
                             ),
-                            title: Text(
-                              filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-                              style: TextStyle(
-                                fontSize: 19,
-                                fontFamily: 'Smooch',
-                                fontWeight: FontWeight.w500,
-                              ),
-                            ),
-                            subtitle: Text(
-                              filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                              maxLines: 9,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
+                            /// notes description
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(left: 16.0),
+                              child: Text(
+                                filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                                maxLines: 9,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
                           ),
@@ -249,7 +264,8 @@ class _HomePageState extends State<HomePage> {
         child: Column(
           children: [
             Text(
-              isUpdate ? 'Update Note' : 'Add Note',
+              'Add Note',
+              // isUpdate ? 'Update Note' : 'Add Note',
               style: TextStyle(fontSize: 25, fontWeight: FontWeight.bold),
             ),
             SizedBox(
@@ -257,16 +273,18 @@ class _HomePageState extends State<HomePage> {
             ),
             TextField(
               controller: titleController,
+              autofocus: true, // Focus on the title field as soon as it's loaded
               decoration: InputDecoration(
-                hintText: "Enter title here",
-                label: Text('Title'),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
+                hintText: "Title",
+                hintStyle: TextStyle(color: Colors.grey),
+                border: InputBorder.none, // No border to mimic Google Keep
               ),
+              style: TextStyle(
+                fontSize: 22, // Larger font size for the title
+                fontWeight: FontWeight.bold, // Bold title like Keep Notes
+              ),
+              maxLines: null, // Allow multiple lines for title if needed
+              textAlign: TextAlign.start, // Align the text to the start
             ),
             SizedBox(
               height: 11,
@@ -275,14 +293,15 @@ class _HomePageState extends State<HomePage> {
               controller: descController,
               maxLines: 4,
               decoration: InputDecoration(
-                hintText: "Enter desc here",
+                hintText: "Enter description here",
                 label: Text('Description'),
-                focusedBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
-                enabledBorder: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(11),
-                ),
+                border: InputBorder.none
+                // focusedBorder: OutlineInputBorder(
+                //   borderRadius: BorderRadius.circular(11),
+                // ),
+                // enabledBorder: OutlineInputBorder(
+                //   borderRadius: BorderRadius.circular(11),
+                // ),
               ),
             ),
             SizedBox(
