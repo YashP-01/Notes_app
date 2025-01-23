@@ -2,6 +2,7 @@ import 'package:db_practice/edit_profile.dart';
 import 'package:db_practice/loading_animation.dart';
 import 'package:db_practice/settings_page.dart';
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class MyDrawer extends StatefulWidget {
   const MyDrawer({Key? key}) : super(key: key);
@@ -23,12 +24,34 @@ class _MyDrawerState extends State<MyDrawer> {
     'assets/profile_avatar/avatar5.png',
   ];
 
-  void _updateProfile(String name, int avatarIndex, String gender) {
+  @override
+  void initState() {
+    super.initState();
+    _loadProfileData();
+  }
+
+  // Load profile data from SharedPreferences
+  void _loadProfileData() async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      _name = prefs.getString('name') ?? 'Zero';  // Default to 'Zero' if not found
+      _gender = prefs.getString('gender') ?? 'Male'; // Default to 'Male' if not found
+      _avatarIndex = prefs.getInt('avatarIndex') ?? 2; // Default to avatar index 2 if not found
+    });
+  }
+
+  void _updateProfile(String name, int avatarIndex, String gender) async {
     setState(() {
       _name = name;
       _avatarIndex = avatarIndex;
       _gender = gender;
     });
+
+    // Save the updated profile to SharedPreferences
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    await prefs.setString('name', name);
+    await prefs.setInt('avatarIndex', avatarIndex);
+    await prefs.setString('gender', gender);
   }
 
   @override
@@ -51,10 +74,12 @@ class _MyDrawerState extends State<MyDrawer> {
                     crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisAlignment: MainAxisAlignment.center,
                     children: [
+                      // user name
                       Text(
                         _name,
                         style: const TextStyle(fontSize: 18, fontWeight: FontWeight.bold),
                       ),
+                      // gender
                       Text(_gender, style: const TextStyle(color: Colors.grey)),
                     ],
                   ),
@@ -98,6 +123,10 @@ class _MyDrawerState extends State<MyDrawer> {
                 context,
                 MaterialPageRoute(builder: (_) => LoadingAnimation()),
               ),
+            ),
+            Text(
+              'version: 1.0.0',
+              style: TextStyle(color: Colors.grey),
             ),
           ],
         ),

@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class EditProfile extends StatefulWidget {
   final String currentName;
@@ -39,14 +40,18 @@ class _EditProfileScreenState extends State<EditProfile> {
     _selectedGender = widget.currentGender;
   }
 
-  void _updateProfile() {
+  void _updateProfile() async {
     final String name = _nameController.text.trim();
+
     if (name.isNotEmpty && _selectedAvatarIndex >= 0 && _selectedGender.isNotEmpty) {
-      widget.onUpdateProfile(
-        name,
-        _selectedAvatarIndex,
-        _selectedGender,
-      );
+      // Save data to SharedPreferences
+      SharedPreferences prefs = await SharedPreferences.getInstance();
+      await prefs.setString('name', name);
+      await prefs.setInt('avatarIndex', _selectedAvatarIndex);
+      await prefs.setString('gender', _selectedGender);
+
+      // Call the parent method to notify about the update
+      widget.onUpdateProfile(name, _selectedAvatarIndex, _selectedGender);
 
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text("Profile updated successfully!")),
@@ -146,7 +151,6 @@ class _EditProfileScreenState extends State<EditProfile> {
                 ],
               ),
               const SizedBox(height: 24),
-
               const Text("Select your avatar:", style: TextStyle(fontSize: 16)),
               const SizedBox(height: 8),
               Row(
@@ -158,7 +162,6 @@ class _EditProfileScreenState extends State<EditProfile> {
                 }).toList(),
               ),
               const SizedBox(height: 40),
-
               SizedBox(
                 width: double.infinity,
                 child: ElevatedButton(

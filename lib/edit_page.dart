@@ -134,9 +134,9 @@ class _EditPageState extends State<EditPage> {
                 Container(
                   decoration: BoxDecoration(
                       border: Border.all(
-                          width: 2
+                          width: 0.7
                       ),
-                      borderRadius: BorderRadius.circular(8)),
+                      borderRadius: BorderRadius.circular(11)),
                   child: Row(
                     mainAxisAlignment: MainAxisAlignment.spaceAround,
                     children: [
