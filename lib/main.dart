@@ -1,4 +1,3 @@
-import 'package:db_practice/home_page.dart';
 import 'package:db_practice/splash_screen.dart';
 import 'package:flutter/material.dart';
 
@@ -14,7 +13,7 @@ class MyApp extends StatelessWidget {
   Widget build(BuildContext context) {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
-      title: 'Flutter Demo',
+      title: 'Notes',
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.deepPurple),
         useMaterial3: true,
