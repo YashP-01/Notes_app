@@ -1,3 +1,4 @@
+import 'package:db_practice/sample_template.dart';
 import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -171,6 +172,22 @@ class _EditProfileScreenState extends State<EditProfile> {
                   ),
                   child: const Text(
                     "Update Profile",
+                    style: TextStyle(fontSize: 16),
+                  ),
+                ),
+              ),
+              SizedBox(height: 16,),
+              SizedBox(
+                width: double.infinity,
+                child: ElevatedButton(
+                  onPressed: (){
+                    Navigator.push(context, MaterialPageRoute(builder: (context) => SampleTemplate() ));
+                  },
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(vertical: 14),
+                  ),
+                  child: const Text(
+                    "Sample template",
                     style: TextStyle(fontSize: 16),
                   ),
                 ),

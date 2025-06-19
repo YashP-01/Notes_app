@@ -3,6 +3,9 @@ import 'package:db_practice/data/local/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'edit_page.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:dart_quill_delta/dart_quill_delta.dart';
+import 'dart:convert';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
 
 class HomePage extends StatefulWidget {
@@ -32,6 +35,26 @@ class _HomePageState extends State<HomePage> {
     getNotes();
     filteredNotes = []; // Initially display all notes
   }
+
+  String getPlainTextFromDeltaJson(String deltaJson) {
+    try {
+      final delta = Delta.fromJson(jsonDecode(deltaJson));
+      final document = quill.Document.fromDelta(delta);
+      return document.toPlainText().trim();
+    } catch (e) {
+      return '[Error loading note]';
+    }
+  }
+
+  // String getPlainTextFromDeltaJson(String deltaJson) {
+  //   try {
+  //     final delta = quill.Delta.fromJson(jsonDecode(deltaJson));
+  //     final document = quill.Document.fromDelta(delta);
+  //     return document.toPlainText().trim();
+  //   } catch (e) {
+  //     return '[Error loading note]';
+  //   }
+  // }
 
   void getNotes() async {
     allNotes = await dbRef!.getAllNotes();
@@ -190,12 +213,16 @@ class _HomePageState extends State<HomePage> {
 
                               SizedBox(width: 8,),
                               /// notes title
-                              Text(
-                                filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-                                style: TextStyle(
-                                  fontSize: 19,
-                                  fontFamily: 'Smooch',
-                                  fontWeight: FontWeight.w500,
+                              Expanded(
+                                child: Text(
+                                  overflow: TextOverflow.ellipsis,
+                                  maxLines: 2,
+                                  filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                                  style: TextStyle(
+                                    fontSize: 19,
+                                    fontFamily: 'Smooch',
+                                    fontWeight: FontWeight.w500,
+                                  ),
                                 ),
                               ),
                             ],
@@ -204,8 +231,9 @@ class _HomePageState extends State<HomePage> {
                           subtitle: Padding(
                             padding: const EdgeInsets.only(left: 16.0),
                             child: Text(
-                              filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                              maxLines: 9,
+                              getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC]),
+                              maxLines: 5,
+                              overflow: TextOverflow.ellipsis,
                               style: TextStyle(
                                 fontSize: 14,
                                 fontFamily: 'Roboto',
@@ -213,6 +241,18 @@ class _HomePageState extends State<HomePage> {
                               ),
                             ),
                           ),
+                          // subtitle: Padding(
+                          //   padding: const EdgeInsets.only(left: 16.0),
+                          //   child: Text(
+                          //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                          //     maxLines: 9,
+                          //     style: TextStyle(
+                          //       fontSize: 14,
+                          //       fontFamily: 'Roboto',
+                          //       fontWeight: FontWeight.w500,
+                          //     ),
+                          //   ),
+                          // ),
                         ),
                       ],
                     ),
@@ -229,6 +269,7 @@ class _HomePageState extends State<HomePage> {
           style: TextStyle(fontFamily: 'BethEllen'),
         ),
       ),
+
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal[400],
         onPressed: () async {
@@ -246,7 +287,8 @@ class _HomePageState extends State<HomePage> {
         },
         child: Icon(
           Icons.add,
-          color: Colors.grey.shade700,
+          color: Colors.white,
+          // color: Colors.grey.shade700,
         ),
       ),
     );
@@ -289,9 +331,9 @@ class _HomePageState extends State<HomePage> {
                       if (value == null || value.isEmpty) {
                         return 'Title cannot be empty';
                       }
-                      if (value.length > maxTitleLength) {
-                        return 'Title cannot exceed $maxTitleLength characters';
-                      }
+                      // if (value.length > maxTitleLength) {
+                      //   return 'Title cannot exceed $maxTitleLength characters';
+                      // }
                       return null;
                     },
                     style: TextStyle(
@@ -379,5 +421,4 @@ class _HomePageState extends State<HomePage> {
       ),
     );
   }
-
 }
