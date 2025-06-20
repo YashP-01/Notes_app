@@ -70,6 +70,7 @@ class DBHelper {
 
     var db = await getDB();
     List<Map<String, dynamic>> mData = await db.query(TABLE_NOTE,);
+    print("raw data: $mData");
 
     return mData;
   }

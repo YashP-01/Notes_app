@@ -1,10 +1,221 @@
+import 'dart:convert';
+import 'dart:io';
+
 import 'package:db_practice/themes/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:provider/provider.dart';
+import 'data/local/db_helper.dart';
+import 'package:permission_handler/permission_handler.dart';
+import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:dart_quill_delta/dart_quill_delta.dart';
+import 'package:path/path.dart' as p;
+import 'package:file_picker/file_picker.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
-class SettingsPage extends StatelessWidget {
+
+
+class SettingsPage extends StatefulWidget {
   const SettingsPage({super.key});
+
+  @override
+  State<SettingsPage> createState() => _SettingsPageState();
+}
+
+class _SettingsPageState extends State<SettingsPage> {
+
+  List<Map<String, dynamic>> filteredNotes = [];
+  List<Map<String, dynamic>> allNotes = [];
+  DBHelper? dbRef;
+
+  @override
+  void initState() {
+    super.initState();
+    dbRef = DBHelper.getInstance;
+    getNotes();
+  }
+
+
+  Future<void> getNotes() async {
+    allNotes = await dbRef!.getAllNotes();
+    setState(() {
+      filteredNotes = allNotes; // Set the initial list to all notes
+    });
+  }
+
+  Future<void> _exportNotes(BuildContext context) async {
+    try {
+      if (Platform.isAndroid) {
+        var status = await Permission.storage.request();
+        if (!status.isGranted) {
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(content: Text('Storage permission denied')),
+          );
+          return;
+        }
+      }
+
+      final notes = await dbRef!.getAllNotes();
+
+      final buffer = StringBuffer();
+      int index = 1;
+      for (var note in notes) {
+        final title = note['title'];
+        final deltaJson = note['desc'];
+
+        String content;
+        try {
+          final delta = Delta.fromJson(jsonDecode(deltaJson));
+          final doc = quill.Document.fromDelta(delta);
+          content = doc.toPlainText().trim();
+        } catch (e) {
+          content = '[Error parsing content]';
+        }
+
+        buffer.writeln('Note no: $index');
+        buffer.writeln('Title: $title');
+        buffer.writeln('Description: $content');
+        buffer.writeln('---*---*---\n');
+
+        index++;
+      }
+
+
+      // Write to public Downloads folder
+      final manualPath = '/storage/emulated/0/Download'; // Android-specific
+      final filePath = p.join(manualPath, 'exported_notes.txt');
+      final file = File(filePath);
+      await file.writeAsString(buffer.toString());
+
+      print("Notes exported successfully to $filePath");
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Notes exported to $filePath')),
+      );
+    } catch (e) {
+      print('Export failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to export notes')),
+      );
+    }
+  }
+
+
+  Future<void> _importNotes(BuildContext context) async {
+    try {
+      // 1. Pick a .txt file
+      final result = await FilePicker.platform.pickFiles(
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+      );
+
+      if (result == null || result.files.single.path == null) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(content: Text('No file selected')),
+        );
+        return;
+      }
+
+      final file = File(result.files.single.path!);
+      final content = await file.readAsString();
+
+      // 2. Parse notes from text
+      final notes = content.split('---*---*---').where((note) => note.trim().isNotEmpty);
+
+      int importedCount = 0;
+      for (var rawNote in notes) {
+        final lines = rawNote.trim().split('\n');
+
+        String title = '';
+        String description = '';
+
+        for (var line in lines) {
+          if (line.startsWith('Title:')) {
+            title = line.replaceFirst('Title:', '').trim();
+          } else if (line.startsWith('Description:')) {
+            description = line.replaceFirst('Description:', '').trim();
+          } else {
+            description += '\n' + line.trim(); // In case multi-line descriptions exist
+          }
+        }
+
+        // 3. Convert plain text description to Delta JSON
+        final delta = Delta()..insert(description + '\n');
+        final quillDoc = quill.Document.fromDelta(delta);
+        final jsonDelta = jsonEncode(quillDoc.toDelta().toJson());
+
+        // 4. Save to database
+        await dbRef!.addNote(mTitle: title, mDesc: jsonDelta);
+        importedCount++;
+      }
+
+      // 5. Notify and refresh notes
+      await getNotes(); // This should reload the home screen list
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('$importedCount notes imported successfully')),
+      );
+    } catch (e) {
+      print('Import failed: $e');
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to import notes')),
+      );
+    }
+  }
+
+  // Future<void> _exportNotes(BuildContext context) async {
+  //   try {
+  //     if (Platform.isAndroid) {
+  //       var status = await Permission.storage.request();
+  //       if (!status.isGranted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text('Storage permission denied')),
+  //         );
+  //         return;
+  //       }
+  //     }
+  //
+  //     print("starting fetching...");
+  //     final notes = await dbRef!.getAllNotes();
+  //     print("raw data from settings screen: $notes");
+  //
+  //     final buffer = StringBuffer();
+  //     for (var note in notes) {
+  //       final title = note['title'];
+  //       final deltaJson = note['desc'];
+  //
+  //       String content;
+  //       try {
+  //         final delta = Delta.fromJson(jsonDecode(deltaJson));
+  //         final doc = quill.Document.fromDelta(delta);
+  //         content = doc.toPlainText().trim();
+  //       } catch (e) {
+  //         content = '[Error parsing content]';
+  //       }
+  //
+  //       buffer.writeln('Title: $title\nDescription: $content\n---\n');
+  //     }
+  //
+  //     final dir = await getDownloadsDirectory();
+  //     if (dir == null) {
+  //       throw Exception('External storage directory not available');
+  //     }
+  //
+  //     final filePath = '${dir.path}/exported_notes.txt';
+  //     final file = File(filePath);
+  //     await file.writeAsString(buffer.toString());
+  //
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Notes exported to $filePath')),
+  //     );
+  //   } catch (e) {
+  //     print('Export failed: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Failed to export notes')),
+  //     );
+  //   }
+  // }
+
+
 
   @override
   Widget build(BuildContext context) {
@@ -239,7 +450,10 @@ class SettingsPage extends StatelessWidget {
               style: TextStyle(
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
-                color: Theme.of(context).primaryColor,
+                color: Theme.of(context).brightness == Brightness.dark
+                    ? Theme.of(context).colorScheme.primary // or any dark mode color
+                    : Colors.teal,
+                // color: Theme.of(context).primaryColor,
               ),
             ),
           ),
@@ -361,7 +575,9 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _showSortDialog(BuildContext context) {
+  void _showSortDialog(BuildContext context) async {
+    final prefs = await SharedPreferences.getInstance();
+
     showDialog(
       context: context,
       builder: (context) => AlertDialog(
@@ -371,25 +587,69 @@ class SettingsPage extends StatelessWidget {
           children: [
             ListTile(
               title: const Text('Date Modified (Newest)'),
-              onTap: () => Navigator.pop(context),
+              onTap: () async {
+                await prefs.setString('sortOrder', 'newest');
+                Navigator.pop(context);
+              },
             ),
             ListTile(
               title: const Text('Date Modified (Oldest)'),
-              onTap: () => Navigator.pop(context),
+              onTap: () async {
+                await prefs.setString('sortOrder', 'oldest');
+                Navigator.pop(context);
+              },
             ),
             ListTile(
               title: const Text('Alphabetical (A-Z)'),
-              onTap: () => Navigator.pop(context),
+              onTap: () async {
+                await prefs.setString('sortOrder', 'az');
+                Navigator.pop(context);
+              },
             ),
             ListTile(
               title: const Text('Alphabetical (Z-A)'),
-              onTap: () => Navigator.pop(context),
+              onTap: () async {
+                await prefs.setString('sortOrder', 'za');
+                Navigator.pop(context);
+              },
             ),
           ],
         ),
       ),
     );
   }
+
+
+
+  // void _showSortDialog(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Sort Order'),
+  //       content: Column(
+  //         mainAxisSize: MainAxisSize.min,
+  //         children: [
+  //           ListTile(
+  //             title: const Text('Date Modified (Newest)'),
+  //             onTap: () => Navigator.pop(context),
+  //           ),
+  //           ListTile(
+  //             title: const Text('Date Modified (Oldest)'),
+  //             onTap: () => Navigator.pop(context),
+  //           ),
+  //           ListTile(
+  //             title: const Text('Alphabetical (A-Z)'),
+  //             onTap: () => Navigator.pop(context),
+  //           ),
+  //           ListTile(
+  //             title: const Text('Alphabetical (Z-A)'),
+  //             onTap: () => Navigator.pop(context),
+  //           ),
+  //         ],
+  //       ),
+  //     ),
+  //   );
+  // }
 
   void _showCloudBackupOptions(BuildContext context) {
     showDialog(
@@ -420,19 +680,19 @@ class SettingsPage extends StatelessWidget {
     );
   }
 
-  void _exportNotes(BuildContext context) {
-    // Implement export functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Export feature coming soon!')),
-    );
-  }
+  // void _exportNotes(BuildContext context) {
+  //   // Implement export functionality
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text('Export feature coming soon!')),
+  //   );
+  // }
 
-  void _importNotes(BuildContext context) {
-    // Implement import functionality
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Import feature coming soon!')),
-    );
-  }
+  // void _importNotes(BuildContext context) {
+  //   // Implement import functionality
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text('Import feature coming soon!')),
+  //   );
+  // }
 
   void _changePIN(BuildContext context) {
     // Implement PIN change functionality
@@ -489,19 +749,6 @@ class SettingsPage extends StatelessWidget {
   }
 
   // void _showHelp(BuildContext context) {
-  //   Navigator.push(
-  //     context,
-  //     MaterialPageRoute(
-  //       builder: (context) => Scaffold(
-  //         appBar: AppBar(title: const Text('Help & Support')),
-  //         body: const Center(
-  //           child: Text('Help content goes here'),
-  //         ),
-  //       ),
-  //     ),
-  //   );
-  // }
-
   void _rateApp(BuildContext context) {
     // Implement app rating functionality
     ScaffoldMessenger.of(context).showSnackBar(

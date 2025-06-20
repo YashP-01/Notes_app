@@ -277,19 +277,22 @@ class _EditPageState extends State<EditPage> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.grey[50],
+      // backgroundColor: Colors.grey[50],
       appBar: AppBar(
         elevation: 0,
-        backgroundColor: Colors.white,
+        // backgroundColor: Colors.white,
         title: Text(
           'Edit Note',
           style: TextStyle(
-            color: Colors.grey[800],
+            // color: Colors.grey[800],
             fontWeight: FontWeight.w600,
           ),
         ),
         leading: IconButton(
-          icon: Icon(Icons.arrow_back, color: Colors.grey[700]),
+          icon: Icon(
+            Icons.arrow_back,
+              // color: Colors.grey[700]
+          ),
           onPressed: () => Navigator.pop(context),
         ),
         // actions: [
@@ -308,27 +311,27 @@ class _EditPageState extends State<EditPage> {
             margin: EdgeInsets.all(16),
             padding: EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             decoration: BoxDecoration(
-              color: Colors.white,
+              // color: Colors.white,
               borderRadius: BorderRadius.circular(12),
-              boxShadow: [
-                BoxShadow(
-                  color: Colors.black.withOpacity(0.05),
-                  blurRadius: 10,
-                  offset: Offset(0, 2),
-                ),
-              ],
+              // boxShadow: [
+              //   BoxShadow(
+              //     // color: Colors.black.withOpacity(0.05),
+              //     blurRadius: 10,
+              //     offset: Offset(0, 2),
+              //   ),
+              // ],
             ),
             child: TextField(
               controller: titleController,
               style: TextStyle(
                 fontSize: 22,
                 fontWeight: FontWeight.w600,
-                color: Colors.grey[800],
+                // color: Colors.grey[800],
               ),
               decoration: InputDecoration(
                 hintText: 'Note Title',
                 hintStyle: TextStyle(
-                  color: Colors.grey[400],
+                  // color: Colors.grey[400],
                   fontWeight: FontWeight.normal,
                 ),
                 border: InputBorder.none,
@@ -501,15 +504,15 @@ class _EditPageState extends State<EditPage> {
               margin: EdgeInsets.symmetric(horizontal: 16),
               padding: EdgeInsets.all(16),
               decoration: BoxDecoration(
-                color: Colors.white,
+                // color: Colors.white,
                 borderRadius: BorderRadius.circular(12),
-                boxShadow: [
-                  BoxShadow(
-                    color: Colors.black.withOpacity(0.05),
-                    blurRadius: 10,
-                    offset: Offset(0, 2),
-                  ),
-                ],
+                // boxShadow: [
+                //   BoxShadow(
+                //     // color: Colors.black.withOpacity(0.05),
+                //     blurRadius: 10,
+                //     offset: Offset(0, 2),
+                //   ),
+                // ],
               ),
               child: Column(
                 children: [
@@ -541,7 +544,7 @@ class _EditPageState extends State<EditPage> {
                     label: Text('Cancel'),
                     style: OutlinedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 14),
-                      side: BorderSide(color: Colors.grey[300]!),
+                      // side: BorderSide(color: Colors.grey[300]!),
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -553,12 +556,12 @@ class _EditPageState extends State<EditPage> {
                   flex: 2,
                   child: ElevatedButton.icon(
                     onPressed: _saveNote,
-                    icon: Icon(Icons.save_rounded, color: Colors.white,),
+                    // icon: Icon(Icons.save_rounded, color: Colors.white,),
                     label: Text('Update Note'),
                     style: ElevatedButton.styleFrom(
                       padding: EdgeInsets.symmetric(vertical: 14),
-                      backgroundColor: Colors.blue[600],
-                      foregroundColor: Colors.white,
+                      // backgroundColor: Colors.blue[600],
+                      // foregroundColor: Colors.white,
                       shape: RoundedRectangleBorder(
                         borderRadius: BorderRadius.circular(12),
                       ),
@@ -614,7 +617,7 @@ class _EditPageState extends State<EditPage> {
           onPressed: onPressed,
           icon: Stack(
             children: [
-              Icon(icon, size: 20, color: Colors.grey[600]),
+              // Icon(icon, size: 20, color: Colors.grey[600]),
               if (color != Colors.transparent)
                 Positioned(
                   bottom: 0,
@@ -623,7 +626,7 @@ class _EditPageState extends State<EditPage> {
                     width: 12,
                     height: 3,
                     decoration: BoxDecoration(
-                      color: color,
+                      // color: color,
                       borderRadius: BorderRadius.circular(2),
                     ),
                   ),

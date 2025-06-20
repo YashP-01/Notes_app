@@ -7,6 +7,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:dart_quill_delta/dart_quill_delta.dart';
 import 'dart:convert';
 import 'package:liquid_pull_to_refresh/liquid_pull_to_refresh.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 
 class HomePage extends StatefulWidget {
   @override
@@ -14,13 +15,16 @@ class HomePage extends StatefulWidget {
 }
 
 class _HomePageState extends State<HomePage> {
+  // late TextEditingController titleController;
+  // late quill.QuillController descController;
   List<Map<String, dynamic>> filteredNotes = [];
   bool isSearching = false;
   TextEditingController searchController = TextEditingController();
 
   /// controllers
   TextEditingController titleController = TextEditingController();
-  TextEditingController descController = TextEditingController();
+  late quill.QuillController descController;
+  // TextEditingController descController = TextEditingController();
   FocusNode _focusNode = FocusNode();
 
   final int maxTitleLength = 7;   /// maximum title length
@@ -33,7 +37,32 @@ class _HomePageState extends State<HomePage> {
     super.initState();
     dbRef = DBHelper.getInstance;
     getNotes();
-    filteredNotes = []; // Initially display all notes
+    filteredNotes = [];
+    descController = quill.QuillController.basic();
+    loadAndApplySortOrder();
+  }
+
+  Future<void> loadAndApplySortOrder() async {
+    final prefs = await SharedPreferences.getInstance();
+    final savedSortOrder = prefs.getString('sortOrder') ?? 'newest'; // default sort
+    await getNotes();
+    _sortNotes(savedSortOrder);
+  }
+
+  void _sortNotes(String order) {
+    setState(() {
+      if (order == 'newest') {
+        filteredNotes.sort((a, b) => b['modifiedDate'].compareTo(a['modifiedDate']));
+      } else if (order == 'oldest') {
+        filteredNotes.sort((a, b) => a['modifiedDate'].compareTo(b['modifiedDate']));
+      } else if (order == 'az') {
+        filteredNotes.sort((a, b) =>
+            a['title'].toLowerCase().compareTo(b['title'].toLowerCase()));
+      } else if (order == 'za') {
+        filteredNotes.sort((a, b) =>
+            b['title'].toLowerCase().compareTo(a['title'].toLowerCase()));
+      }
+    });
   }
 
   String getPlainTextFromDeltaJson(String deltaJson) {
@@ -42,6 +71,7 @@ class _HomePageState extends State<HomePage> {
       final document = quill.Document.fromDelta(delta);
       return document.toPlainText().trim();
     } catch (e) {
+      print("Error: $e");
       return '[Error loading note]';
     }
   }
@@ -56,10 +86,10 @@ class _HomePageState extends State<HomePage> {
   //   }
   // }
 
-  void getNotes() async {
+  Future<void> getNotes() async {
     allNotes = await dbRef!.getAllNotes();
     setState(() {
-      filteredNotes = allNotes; // Set the initial list to all notes
+      filteredNotes = allNotes;
     });
   }
 
@@ -161,112 +191,117 @@ class _HomePageState extends State<HomePage> {
       ),
       drawer: const MyDrawer(),
 
-      body: filteredNotes.isNotEmpty
-          ? CustomScrollView(
-        slivers: [
-          SliverPadding(
-            padding: EdgeInsets.all(10),
-            sliver: SliverStaggeredGrid.countBuilder(
-              crossAxisCount: 2,
-              itemCount: filteredNotes.length,
-              staggeredTileBuilder: (index) => StaggeredTile.fit(1),
-              mainAxisSpacing: 7,
-              crossAxisSpacing: 3,
-              itemBuilder: (context, index) {
-                return GestureDetector(
-                  onTap: () {
-                    // On tap, navigate to the EditPage
-                    Navigator.push(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => EditPage(
-                          title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-                          description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                          sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+      body: RefreshIndicator.adaptive(
+        onRefresh: () async {
+          await getNotes(); // Your DB fetch method
+        },
+        child: filteredNotes.isNotEmpty
+            ? CustomScrollView(
+          slivers: [
+            SliverPadding(
+              padding: EdgeInsets.all(10),
+              sliver: SliverStaggeredGrid.countBuilder(
+                crossAxisCount: 2,
+                itemCount: filteredNotes.length,
+                staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                mainAxisSpacing: 7,
+                crossAxisSpacing: 3,
+                itemBuilder: (context, index) {
+                  return GestureDetector(
+                    onTap: () {
+                      /// On tap, navigate to the EditPage
+                      Navigator.push(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => EditPage(
+                            title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                            description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                            sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+                          ),
                         ),
-                      ),
-                    ).then((value){
-                      if(value == true){
-                        getNotes();
-                      }
-                    });
-                  },
-                  onLongPress: () {
-                    // Show the confirmation dialog for deleting the note
-                    _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
-                  },
-
-                  child: Card(
-                    elevation: 4,
-                    child: Column(
-                      children: [
-                        ListTile(
-                          title: Row(
-                            children: [
-                              /// notes index
-                              Text(
-                                '${index + 1}',
-                                style: TextStyle(
-                                  fontSize: 15,
-                                ),
-                              ),
-
-                              SizedBox(width: 8,),
-                              /// notes title
-                              Expanded(
-                                child: Text(
-                                  overflow: TextOverflow.ellipsis,
-                                  maxLines: 2,
-                                  filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                      ).then((value){
+                        if(value == true){
+                          getNotes();
+                        }
+                      });
+                    },
+                    onLongPress: () {
+                      // Show the confirmation dialog for deleting the note
+                      _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+                    },
+        
+                    child: Card(
+                      elevation: 4,
+                      child: Column(
+                        children: [
+                          ListTile(
+                            title: Row(
+                              children: [
+                                /// notes index
+                                Text(
+                                  '${index + 1}',
                                   style: TextStyle(
-                                    fontSize: 19,
-                                    fontFamily: 'Smooch',
-                                    fontWeight: FontWeight.w500,
+                                    fontSize: 15,
                                   ),
                                 ),
-                              ),
-                            ],
-                          ),
-                          /// notes description
-                          subtitle: Padding(
-                            padding: const EdgeInsets.only(left: 16.0),
-                            child: Text(
-                              getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC]),
-                              maxLines: 5,
-                              overflow: TextOverflow.ellipsis,
-                              style: TextStyle(
-                                fontSize: 14,
-                                fontFamily: 'Roboto',
-                                fontWeight: FontWeight.w500,
+        
+                                SizedBox(width: 8,),
+                                /// notes title
+                                Expanded(
+                                  child: Text(
+                                    overflow: TextOverflow.ellipsis,
+                                    maxLines: 2,
+                                    filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                                    style: TextStyle(
+                                      fontSize: 19,
+                                      fontFamily: 'Smooch',
+                                      fontWeight: FontWeight.w500,
+                                    ),
+                                  ),
+                                ),
+                              ],
+                            ),
+                            /// notes description
+                            subtitle: Padding(
+                              padding: const EdgeInsets.only(left: 16.0),
+                              child: Text(
+                                getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC]),
+                                maxLines: 5,
+                                overflow: TextOverflow.ellipsis,
+                                style: TextStyle(
+                                  fontSize: 14,
+                                  fontFamily: 'Roboto',
+                                  fontWeight: FontWeight.w500,
+                                ),
                               ),
                             ),
+                            // subtitle: Padding(
+                            //   padding: const EdgeInsets.only(left: 16.0),
+                            //   child: Text(
+                            //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+                            //     maxLines: 9,
+                            //     style: TextStyle(
+                            //       fontSize: 14,
+                            //       fontFamily: 'Roboto',
+                            //       fontWeight: FontWeight.w500,
+                            //     ),
+                            //   ),
+                            // ),
                           ),
-                          // subtitle: Padding(
-                          //   padding: const EdgeInsets.only(left: 16.0),
-                          //   child: Text(
-                          //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                          //     maxLines: 9,
-                          //     style: TextStyle(
-                          //       fontSize: 14,
-                          //       fontFamily: 'Roboto',
-                          //       fontWeight: FontWeight.w500,
-                          //     ),
-                          //   ),
-                          // ),
-                        ),
-                      ],
+                        ],
+                      ),
                     ),
-                  ),
-                );
-              },
+                  );
+                },
+              ),
             ),
+          ],
+        )
+            : Center(
+          child: Text(
+            'No Notes yet!!',
+            style: TextStyle(fontFamily: 'BethEllen'),
           ),
-        ],
-      )
-          : Center(
-        child: Text(
-          'No Notes yet!!',
-          style: TextStyle(fontFamily: 'BethEllen'),
         ),
       ),
 
@@ -347,15 +382,27 @@ class _HomePageState extends State<HomePage> {
                     height: 11,
                   ),
                   // Description Input Field
-                  TextField(
-                    controller: descController,
-                    maxLines: 4,
-                    decoration: InputDecoration(
-                      hintText: "Enter description here",
-                      label: Text('Description'),
-                      border: InputBorder.none,
+                  Container(
+                    height: 200, // Adjust as needed
+                    padding: EdgeInsets.all(8),
+                    // decoration: BoxDecoration(
+                    //   border: Border.all(color: Colors.grey),
+                    //   borderRadius: BorderRadius.circular(8),
+                    // ),
+                    child: quill.QuillEditor.basic(
+                      controller: descController,
+                      // readOnly: false,
                     ),
                   ),
+                  // TextField(
+                  //   controller: descController,
+                  //   maxLines: 4,
+                  //   decoration: InputDecoration(
+                  //     hintText: "Enter description here",
+                  //     label: Text('Description'),
+                  //     border: InputBorder.none,
+                  //   ),
+                  // ),
                   SizedBox(
                     height: 11,
                   ),
@@ -371,19 +418,20 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           onPressed: () async {
-                            // Validate form before proceeding
                             if (_formKey.currentState!.validate()) {
                               var title = titleController.text;
-                              var desc = descController.text;
+                              // Convert Quill document to Delta JSON string
+                              var descDeltaJson = jsonEncode(descController.document.toDelta().toJson());
+
                               bool check = isUpdate
-                                  ? await dbRef!.updateNote(
-                                  mTitle: title, mDesc: desc, sno: sno)
-                                  : await dbRef!.addNote(mTitle: title, mDesc: desc);
+                                  ? await dbRef!.updateNote(mTitle: title, mDesc: descDeltaJson, sno: sno)
+                                  : await dbRef!.addNote(mTitle: title, mDesc: descDeltaJson);
+
                               if (check) {
                                 getNotes();
                               }
                               titleController.clear();
-                              descController.clear();
+                              // descController.document.close(); // Clear Quill controller
                               Navigator.pop(context);
                             } else {
                               ScaffoldMessenger.of(context).showSnackBar(
@@ -394,9 +442,7 @@ class _HomePageState extends State<HomePage> {
                           child: Text(isUpdate ? 'Update Note' : 'Add Note'),
                         ),
                       ),
-                      SizedBox(
-                        width: 11,
-                      ),
+                      SizedBox(width: 11),
                       Expanded(
                         child: OutlinedButton(
                           style: OutlinedButton.styleFrom(
@@ -406,13 +452,67 @@ class _HomePageState extends State<HomePage> {
                             ),
                           ),
                           onPressed: () {
-                            Navigator.pop(context); // Cancel and return to HomePage
+                            Navigator.pop(context);
                           },
                           child: Text('Cancel'),
                         ),
                       ),
                     ],
                   ),
+
+                  // Row(
+                  //   children: [
+                  //     Expanded(
+                  //       child: OutlinedButton(
+                  //         style: OutlinedButton.styleFrom(
+                  //           side: BorderSide(width: 1),
+                  //           shape: RoundedRectangleBorder(
+                  //             borderRadius: BorderRadius.circular(11),
+                  //           ),
+                  //         ),
+                  //         onPressed: () async {
+                  //           // Validate form before proceeding
+                  //           if (_formKey.currentState!.validate()) {
+                  //             var title = titleController.text;
+                  //             var desc = descController.text;
+                  //             bool check = isUpdate
+                  //                 ? await dbRef!.updateNote(
+                  //                 mTitle: title, mDesc: desc, sno: sno)
+                  //                 : await dbRef!.addNote(mTitle: title, mDesc: desc);
+                  //             if (check) {
+                  //               getNotes();
+                  //             }
+                  //             titleController.clear();
+                  //             descController.clear();
+                  //             Navigator.pop(context);
+                  //           } else {
+                  //             ScaffoldMessenger.of(context).showSnackBar(
+                  //               SnackBar(content: Text('Please fix the errors in the form!')),
+                  //             );
+                  //           }
+                  //         },
+                  //         child: Text(isUpdate ? 'Update Note' : 'Add Note'),
+                  //       ),
+                  //     ),
+                  //     SizedBox(
+                  //       width: 11,
+                  //     ),
+                  //     Expanded(
+                  //       child: OutlinedButton(
+                  //         style: OutlinedButton.styleFrom(
+                  //           side: BorderSide(width: 1),
+                  //           shape: RoundedRectangleBorder(
+                  //             borderRadius: BorderRadius.circular(11),
+                  //           ),
+                  //         ),
+                  //         onPressed: () {
+                  //           Navigator.pop(context); // Cancel and return to HomePage
+                  //         },
+                  //         child: Text('Cancel'),
+                  //       ),
+                  //     ),
+                  //   ],
+                  // ),
                 ],
               ),
             ),

@@ -6,6 +6,7 @@ import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:provider/provider.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),
