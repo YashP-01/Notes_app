@@ -16,6 +16,9 @@ class _MyDrawerState extends State<MyDrawer> {
   String _gender = "Male";
   int _avatarIndex = 2;
 
+  Set<int> selectedNoteIds = {};
+  bool selectionMode = false;
+
   final List<String> avatars = [
     'assets/profile_avatar/avatar1.png',
     'assets/profile_avatar/avatar2.png',
@@ -53,6 +56,19 @@ class _MyDrawerState extends State<MyDrawer> {
     await prefs.setInt('avatarIndex', avatarIndex);
     await prefs.setString('gender', gender);
   }
+
+  // void deleteSelectedNotes() async {
+  //   for (var noteId in selectedNoteIds) {
+  //     await dbRef.deleteNote(noteId); // Implement this in your DBHelper
+  //   }
+  //
+  //   setState(() {
+  //     filteredNotes.removeWhere((note) => selectedNoteIds.contains(note['id']));
+  //     selectedNoteIds.clear();
+  //     selectionMode = false;
+  //   });
+  // }
+
 
   @override
   Widget build(BuildContext context) {
@@ -115,6 +131,11 @@ class _MyDrawerState extends State<MyDrawer> {
                 context,
                 MaterialPageRoute(builder: (_) => SettingsPage()),
               ),
+            ),
+            ListTile(
+              leading: const Icon(Icons.delete),
+              title: const Text("Delete Multiple Notes"),
+              onTap: () => Navigator.pop(context),
             ),
             ListTile(
               leading: const Icon(Icons.animation),
