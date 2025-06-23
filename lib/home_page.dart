@@ -24,6 +24,8 @@ class _HomePageState extends State<HomePage> {
   Set<int> selectedNoteIds = {};
   bool selectionMode = false;
 
+  bool isMultiSelectMode = false;
+  Set<int> selectedNoteSno = {};
 
   /// controllers
   TextEditingController titleController = TextEditingController();
@@ -213,27 +215,111 @@ class _HomePageState extends State<HomePage> {
         )
             : Center(
           child: Text(
-            'Notes',
+            isMultiSelectMode
+                ? '${selectedNoteSno.length} Selected'
+                : 'Notes',
             style: TextStyle(fontFamily: 'BethEllen'),
           ),
         ),
         actions: [
-          isSearching
-              ? IconButton(
-            icon: Icon(Icons.clear),
-            onPressed: _stopSearch,
-          )
-              : IconButton(
-            icon: Icon(Icons.search),
-            onPressed: _startSearch,
-          ),
+          if (isMultiSelectMode) ...[
+            IconButton(
+              icon: Icon(Icons.delete_rounded),
+              onPressed: selectedNoteSno.isEmpty
+                  ? null
+                  : () async {
+                bool confirm = await showDialog(
+                  context: context,
+                  builder: (context) => AlertDialog(
+                    title: Text("Delete Notes"),
+                    content: Text(
+                        "Are you sure you want to delete ${selectedNoteSno.length} notes?"),
+                    actions: [
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, false),
+                        child: Text("Cancel"),
+                      ),
+                      TextButton(
+                        onPressed: () => Navigator.pop(context, true),
+                        child: Text("Delete"),
+                      ),
+                    ],
+                  ),
+                );
+                if (confirm == true) {
+                  for (var sno in selectedNoteSno) {
+                    await dbRef!.deleteNote(sno: sno); // named argument used correctly
+                  }
+                  await getNotes();
+                  setState(() {
+                    print("selected notes to delete first: ${selectedNoteSno.length}");
+                    isMultiSelectMode = false;
+                    // selectedNoteSno.clear();
+                    // print("selected notes to delete: $selectedNoteSno");
+                  });
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    SnackBar(
+                      content: Text(
+                          '${selectedNoteSno.length} ${selectedNoteSno.length == 1 ? 'note' : 'notes'} deleted'
+                      ),
+                      backgroundColor: Colors.red[600],
+                      behavior: SnackBarBehavior.floating,
+                      duration: Duration(seconds: 3),
+                      action: SnackBarAction(
+                        label: 'Undo',
+                        textColor: Colors.white,
+                        onPressed: () {
+                          // Add undo functionality if needed
+                        },
+                      ),
+                    ),
+                  );
+                  // ScaffoldMessenger.of(context).showSnackBar(
+                  //   SnackBar(
+                  //     content: Text('${selectedNoteSno.length} notes deleted'),
+                  //   ),
+                  // );
+                }
+
+
+              },
+            ),
+            IconButton(
+              icon: Icon(Icons.close),
+              onPressed: () {
+                setState(() {
+                  isMultiSelectMode = false;
+                  selectedNoteSno.clear();
+                });
+              },
+            ),
+          ] else ...[
+            if (isSearching)
+              IconButton(
+                icon: Icon(Icons.clear),
+                onPressed: _stopSearch,
+              )
+            else
+              IconButton(
+                icon: Icon(Icons.search),
+                onPressed: _startSearch,
+              ),
+          ],
         ],
       ),
-      drawer: const MyDrawer(),
-
+      drawer: MyDrawer(
+        onDeleteMultipleTap: () {
+          /// cause of the application crash
+          // Navigator.pop(context);
+          setState(() {
+            isMultiSelectMode = true;
+            selectedNoteSno.clear();
+          });
+        },
+      ),
       body: RefreshIndicator.adaptive(
         onRefresh: () async {
-          await getNotes(); // Your DB fetch method
+          await getNotes();
         },
         child: filteredNotes.isNotEmpty
             ? CustomScrollView(
@@ -247,51 +333,67 @@ class _HomePageState extends State<HomePage> {
                 mainAxisSpacing: 7,
                 crossAxisSpacing: 3,
                 itemBuilder: (context, index) {
+                  final note = filteredNotes[index];
+                  final sno = note[DBHelper.COLUMN_NOTE_SNO];
+                  final isSelected = selectedNoteSno.contains(sno);
+
                   return GestureDetector(
                     onTap: () {
-                      /// On tap, navigate to the EditPage
-                      Navigator.push(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => EditPage(
-                            title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-                            description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                            sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+                      if (isMultiSelectMode) {
+                        setState(() {
+                          if (isSelected) {
+                            selectedNoteSno.remove(sno);
+                          } else {
+                            selectedNoteSno.add(sno);
+                          }
+                          // Exit multi-select mode automatically if no notes are selected
+                          if (selectedNoteSno.isEmpty) {
+                            isMultiSelectMode = false;
+                          }
+                        });
+                      } else {
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => EditPage(
+                              title: note[DBHelper.COLUMN_NOTE_TITLE],
+                              description: note[DBHelper.COLUMN_NOTE_DESC],
+                              sno: sno,
+                            ),
                           ),
-                        ),
-                      ).then((value){
-                        if(value == true){
-                          getNotes();
-                        }
-                      });
+                        ).then((value) {
+                          if (value == true) {
+                            getNotes();
+                          }
+                        });
+                      }
                     },
                     onLongPress: () {
-                      // Show the confirmation dialog for deleting the note
-                      _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+                      if (!isMultiSelectMode) {
+                        setState(() {
+                          isMultiSelectMode = true;
+                          selectedNoteSno.add(sno);
+                        });
+                      }
                     },
-
                     child: Card(
                       elevation: 4,
+                      color: isSelected ? Colors.red[200] : null,
                       child: Column(
                         children: [
                           ListTile(
                             title: Row(
                               children: [
-                                /// notes index
                                 Text(
                                   '${index + 1}',
-                                  style: TextStyle(
-                                    fontSize: 15,
-                                  ),
+                                  style: TextStyle(fontSize: 15),
                                 ),
-
-                                SizedBox(width: 8,),
-                                /// notes title
+                                SizedBox(width: 8),
                                 Expanded(
                                   child: Text(
                                     overflow: TextOverflow.ellipsis,
                                     maxLines: 2,
-                                    filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+                                    note[DBHelper.COLUMN_NOTE_TITLE],
                                     style: TextStyle(
                                       fontSize: 19,
                                       fontFamily: 'Smooch',
@@ -301,14 +403,17 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ],
                             ),
-                            /// notes description
                             subtitle: Padding(
                               padding: const EdgeInsets.only(left: 16.0),
                               child: Text(
-                                filteredNotes[index][DBHelper.COLUMN_NOTE_DESC] != null &&
-                                    filteredNotes[index][DBHelper.COLUMN_NOTE_DESC].toString().trim().isNotEmpty
-                                    ? getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC])
-                                    : '', // fallback text if null or invalid
+                                note[DBHelper.COLUMN_NOTE_DESC] != null &&
+                                    note[DBHelper.COLUMN_NOTE_DESC]
+                                        .toString()
+                                        .trim()
+                                        .isNotEmpty
+                                    ? getPlainTextFromDeltaJson(note[
+                                DBHelper.COLUMN_NOTE_DESC])
+                                    : '',
                                 maxLines: 5,
                                 overflow: TextOverflow.ellipsis,
                                 style: TextStyle(
@@ -318,21 +423,7 @@ class _HomePageState extends State<HomePage> {
                                 ),
                               ),
                             ),
-
-                            // subtitle: Padding(
-                            //   padding: const EdgeInsets.only(left: 16.0),
-                            //   child: Text(
-                            //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-                            //     maxLines: 9,
-                            //     style: TextStyle(
-                            //       fontSize: 14,
-                            //       fontFamily: 'Roboto',
-                            //       fontWeight: FontWeight.w500,
-                            //     ),
-                            //   ),
-                            // ),
                           ),
-
                         ],
                       ),
                     ),
@@ -349,11 +440,9 @@ class _HomePageState extends State<HomePage> {
           ),
         ),
       ),
-
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal[400],
         onPressed: () async {
-          // Add note - open the same bottom sheet to add a new note
           showModalBottomSheet(
             context: context,
             isScrollControlled: true,
@@ -365,14 +454,184 @@ class _HomePageState extends State<HomePage> {
             },
           );
         },
-        child: Icon(
-          Icons.add,
-          color: Colors.white,
-          // color: Colors.grey.shade700,
-        ),
+        child: Icon(Icons.add, color: Colors.white),
       ),
     );
   }
+
+  // @override
+  // Widget build(BuildContext context) {
+  //   return Scaffold(
+  //     backgroundColor: Theme.of(context).colorScheme.surface,
+  //     appBar: AppBar(
+  //       title: isSearching
+  //           ? TextField(
+  //         controller: searchController,
+  //         decoration: InputDecoration(hintText: 'Search notes...'),
+  //         onChanged: _filterNotes,
+  //       )
+  //           : Center(
+  //         child: Text(
+  //           'Notes',
+  //           style: TextStyle(fontFamily: 'BethEllen'),
+  //         ),
+  //       ),
+  //       actions: [
+  //         isSearching
+  //             ? IconButton(
+  //           icon: Icon(Icons.clear),
+  //           onPressed: _stopSearch,
+  //         )
+  //             : IconButton(
+  //           icon: Icon(Icons.search),
+  //           onPressed: _startSearch,
+  //         ),
+  //       ],
+  //     ),
+  //     drawer: const MyDrawer(),
+  //
+  //     body: RefreshIndicator.adaptive(
+  //       onRefresh: () async {
+  //         await getNotes(); // Your DB fetch method
+  //       },
+  //       child: filteredNotes.isNotEmpty
+  //           ? CustomScrollView(
+  //         slivers: [
+  //           SliverPadding(
+  //             padding: EdgeInsets.all(10),
+  //             sliver: SliverStaggeredGrid.countBuilder(
+  //               crossAxisCount: 2,
+  //               itemCount: filteredNotes.length,
+  //               staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+  //               mainAxisSpacing: 7,
+  //               crossAxisSpacing: 3,
+  //               itemBuilder: (context, index) {
+  //                 return GestureDetector(
+  //                   onTap: () {
+  //                     /// On tap, navigate to the EditPage
+  //                     Navigator.push(
+  //                       context,
+  //                       MaterialPageRoute(
+  //                         builder: (context) => EditPage(
+  //                           title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+  //                           description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+  //                           sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+  //                         ),
+  //                       ),
+  //                     ).then((value){
+  //                       if(value == true){
+  //                         getNotes();
+  //                       }
+  //                     });
+  //                   },
+  //                   onLongPress: () {
+  //                     // Show the confirmation dialog for deleting the note
+  //                     _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+  //                   },
+  //
+  //                   child: Card(
+  //                     elevation: 4,
+  //                     child: Column(
+  //                       children: [
+  //                         ListTile(
+  //                           title: Row(
+  //                             children: [
+  //                               /// notes index
+  //                               Text(
+  //                                 '${index + 1}',
+  //                                 style: TextStyle(
+  //                                   fontSize: 15,
+  //                                 ),
+  //                               ),
+  //
+  //                               SizedBox(width: 8,),
+  //                               /// notes title
+  //                               Expanded(
+  //                                 child: Text(
+  //                                   overflow: TextOverflow.ellipsis,
+  //                                   maxLines: 2,
+  //                                   filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+  //                                   style: TextStyle(
+  //                                     fontSize: 19,
+  //                                     fontFamily: 'Smooch',
+  //                                     fontWeight: FontWeight.w500,
+  //                                   ),
+  //                                 ),
+  //                               ),
+  //                             ],
+  //                           ),
+  //                           /// notes description
+  //                           subtitle: Padding(
+  //                             padding: const EdgeInsets.only(left: 16.0),
+  //                             child: Text(
+  //                               filteredNotes[index][DBHelper.COLUMN_NOTE_DESC] != null &&
+  //                                   filteredNotes[index][DBHelper.COLUMN_NOTE_DESC].toString().trim().isNotEmpty
+  //                                   ? getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC])
+  //                                   : '', // fallback text if null or invalid
+  //                               maxLines: 5,
+  //                               overflow: TextOverflow.ellipsis,
+  //                               style: TextStyle(
+  //                                 fontSize: 14,
+  //                                 fontFamily: 'Roboto',
+  //                                 fontWeight: FontWeight.w500,
+  //                               ),
+  //                             ),
+  //                           ),
+  //
+  //                           // subtitle: Padding(
+  //                           //   padding: const EdgeInsets.only(left: 16.0),
+  //                           //   child: Text(
+  //                           //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+  //                           //     maxLines: 9,
+  //                           //     style: TextStyle(
+  //                           //       fontSize: 14,
+  //                           //       fontFamily: 'Roboto',
+  //                           //       fontWeight: FontWeight.w500,
+  //                           //     ),
+  //                           //   ),
+  //                           // ),
+  //                         ),
+  //
+  //                       ],
+  //                     ),
+  //                   ),
+  //                 );
+  //               },
+  //             ),
+  //           ),
+  //         ],
+  //       )
+  //           : Center(
+  //         child: Text(
+  //           'No Notes yet!!',
+  //           style: TextStyle(fontFamily: 'BethEllen'),
+  //         ),
+  //       ),
+  //     ),
+  //
+  //     floatingActionButton: FloatingActionButton(
+  //       backgroundColor: Colors.teal[400],
+  //       onPressed: () async {
+  //         // Add note - open the same bottom sheet to add a new note
+  //         showModalBottomSheet(
+  //           context: context,
+  //           isScrollControlled: true,
+  //           useSafeArea: true,
+  //           builder: (context) {
+  //             titleController.clear();
+  //             descController.clear();
+  //             return getBottomSheetWidget();
+  //           },
+  //         );
+  //       },
+  //       child: Icon(
+  //         Icons.add,
+  //         color: Colors.white,
+  //         // color: Colors.grey.shade700,
+  //       ),
+  //     ),
+  //   );
+  // }
 
   Widget getBottomSheetWidget({bool isUpdate = false, int sno = 0}) {
     // Define a form key to control the form validation

@@ -5,7 +5,9 @@ import 'package:flutter/material.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
 class MyDrawer extends StatefulWidget {
-  const MyDrawer({Key? key}) : super(key: key);
+  final VoidCallback? onDeleteMultipleTap;
+
+  const MyDrawer({Key? key, this.onDeleteMultipleTap}) : super(key: key);
 
   @override
   _MyDrawerState createState() => _MyDrawerState();
@@ -16,7 +18,8 @@ class _MyDrawerState extends State<MyDrawer> {
   String _gender = "Male";
   int _avatarIndex = 2;
 
-  Set<int> selectedNoteIds = {};
+  bool isMultiSelectMode = false;
+  Set<int> selectedNoteSno = {};
   bool selectionMode = false;
 
   final List<String> avatars = [
@@ -133,10 +136,25 @@ class _MyDrawerState extends State<MyDrawer> {
               ),
             ),
             ListTile(
-              leading: const Icon(Icons.delete),
-              title: const Text("Delete Multiple Notes"),
-              onTap: () => Navigator.pop(context),
+              leading: const Icon(Icons.delete_rounded),
+              title: const Text("Delete Notes"),
+              onTap: () {
+                Navigator.pop(context); // Close drawer
+                widget.onDeleteMultipleTap?.call(); // Trigger the parent's logic
+              },
             ),
+            // ListTile(
+            //   leading: const Icon(Icons.delete),
+            //   title: const Text("Delete Multiple Notes"),
+            //   // onTap: onDeleteMultipleTap,
+            //   onTap: () {
+            //     Navigator.pop(context); // Close drawer
+            //     setState(() {
+            //       isMultiSelectMode = true;
+            //       selectedNoteSno.clear();
+            //     });
+            //   },
+            // ),
             ListTile(
               leading: const Icon(Icons.animation),
               title: const Text("Animation"),
