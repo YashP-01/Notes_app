@@ -23,9 +23,9 @@ class _HomePageState extends State<HomePage> {
   TextEditingController searchController = TextEditingController();
   Set<int> selectedNoteIds = {};
   bool selectionMode = false;
-
   bool isMultiSelectMode = false;
   Set<int> selectedNoteSno = {};
+  bool isGridView = true;
 
   /// controllers
   TextEditingController titleController = TextEditingController();
@@ -41,6 +41,7 @@ class _HomePageState extends State<HomePage> {
   @override
   void initState() {
     super.initState();
+    _focusNode = FocusNode();
     dbRef = DBHelper.getInstance;
     getNotes();
     filteredNotes = [];
@@ -136,9 +137,13 @@ class _HomePageState extends State<HomePage> {
   }
 
   void _startSearch() {
-    FocusScope.of(context).requestFocus(_focusNode);
+    // FocusScope.of(context).requestFocus(_focusNode);
     setState(() {
       isSearching = true;
+    });
+    // Ensure focus happens after the UI updates
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _focusNode.requestFocus();
     });
   }
 
@@ -209,8 +214,21 @@ class _HomePageState extends State<HomePage> {
       appBar: AppBar(
         title: isSearching
             ? TextField(
+          focusNode: _focusNode,
+          autofocus: true,
           controller: searchController,
-          decoration: InputDecoration(hintText: 'Search notes...'),
+          // decoration: InputDecoration(hintText: 'Search notes...'),
+          style: TextStyle(color: Colors.grey),
+          cursorColor: Theme.of(context).brightness == Brightness.dark
+                        ? Colors.white
+                        : Colors.black,
+          decoration: InputDecoration(
+            hintText: 'Search...',
+            hintStyle: TextStyle(color: Colors.grey),
+            border: InputBorder.none,
+            isDense: true,
+            contentPadding: EdgeInsets.symmetric(horizontal: 0, vertical: 12),
+          ),
           onChanged: _filterNotes,
         )
             : Center(
@@ -280,8 +298,6 @@ class _HomePageState extends State<HomePage> {
                   //   ),
                   // );
                 }
-
-
               },
             ),
             IconButton(
@@ -300,9 +316,24 @@ class _HomePageState extends State<HomePage> {
                 onPressed: _stopSearch,
               )
             else
-              IconButton(
-                icon: Icon(Icons.search),
-                onPressed: _startSearch,
+              Row(
+                children: [
+                  IconButton(
+                    icon: Icon(isGridView ? Icons.view_agenda : Icons.grid_view),
+                    tooltip: isGridView ? 'Switch to List View' : 'Switch to Grid View',
+                    onPressed: () {
+                      // getNotes();
+                      setState(() {
+                        isGridView = !isGridView;
+                      });
+                    },
+                  ),
+
+                  IconButton(
+                    icon: Icon(Icons.search),
+                    onPressed: _startSearch,
+                  ),
+                ],
               ),
           ],
         ],
@@ -328,10 +359,14 @@ class _HomePageState extends State<HomePage> {
               padding: EdgeInsets.all(10),
               sliver: SliverStaggeredGrid.countBuilder(
                 crossAxisCount: 2,
+                // crossAxisCount: isGridView ? 2 : 1,
                 itemCount: filteredNotes.length,
-                staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                // staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                // staggeredTileBuilder: (index) =>
+                // isGridView ? StaggeredTile.fit(1) : StaggeredTile.extent(1, 2),
+                staggeredTileBuilder: (index) => StaggeredTile.fit(isGridView ? 1 : 2),
                 mainAxisSpacing: 7,
-                crossAxisSpacing: 3,
+                crossAxisSpacing: isGridView ? 3 : 0,
                 itemBuilder: (context, index) {
                   final note = filteredNotes[index];
                   final sno = note[DBHelper.COLUMN_NOTE_SNO];
@@ -377,6 +412,7 @@ class _HomePageState extends State<HomePage> {
                       }
                     },
                     child: Card(
+                      margin: EdgeInsets.symmetric(horizontal: isGridView ? 0 : 5, vertical: 3),
                       elevation: 4,
                       color: isSelected ? Colors.red[200] : null,
                       child: Column(

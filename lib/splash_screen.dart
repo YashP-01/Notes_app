@@ -1,4 +1,5 @@
 import 'package:db_practice/home_page.dart';
+import 'package:db_practice/introduction_screen.dart';
 import 'package:flutter/material.dart';
 import 'package:lottie/lottie.dart';
 import 'package:animated_splash_screen/animated_splash_screen.dart';
@@ -12,7 +13,7 @@ class SplashScreen extends StatelessWidget {
     return FlutterSplashScreen(
       useImmersiveMode: false,
       duration: Duration(seconds: 6),   /// have to make changes for different time duration
-      nextScreen: HomePage(),
+      nextScreen: AppWrapper(),
       backgroundColor: Theme.of(context).colorScheme.surface,
       splashScreenBody: Center(
         child: Lottie.asset(
