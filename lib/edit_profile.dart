@@ -177,21 +177,23 @@ class _EditProfileScreenState extends State<EditProfile> {
                 ),
               ),
               SizedBox(height: 16,),
-              SizedBox(
-                width: double.infinity,
-                child: ElevatedButton(
-                  onPressed: (){
-                    Navigator.push(context, MaterialPageRoute(builder: (context) => SampleTemplate() ));
-                  },
-                  style: ElevatedButton.styleFrom(
-                    padding: const EdgeInsets.symmetric(vertical: 14),
-                  ),
-                  child: const Text(
-                    "Sample template",
-                    style: TextStyle(fontSize: 16),
-                  ),
-                ),
-              ),
+
+              // SizedBox(
+              //   width: double.infinity,
+              //   child: ElevatedButton(
+              //     onPressed: (){
+              //       Navigator.push(context, MaterialPageRoute(builder: (context) => SampleTemplate() ));
+              //     },
+              //     style: ElevatedButton.styleFrom(
+              //       padding: const EdgeInsets.symmetric(vertical: 14),
+              //     ),
+              //     child: const Text(
+              //       "Sample template",
+              //       style: TextStyle(fontSize: 16),
+              //     ),
+              //   ),
+              // ),
+
             ],
           ),
         ),

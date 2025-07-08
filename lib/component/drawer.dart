@@ -155,14 +155,16 @@ class _MyDrawerState extends State<MyDrawer> {
             //     });
             //   },
             // ),
-            ListTile(
-              leading: const Icon(Icons.animation),
-              title: const Text("Animation"),
-              onTap: () => Navigator.push(
-                context,
-                MaterialPageRoute(builder: (_) => LoadingAnimation()),
-              ),
-            ),
+
+            // ListTile(
+            //   leading: const Icon(Icons.animation),
+            //   title: const Text("Animation"),
+            //   onTap: () => Navigator.push(
+            //     context,
+            //     MaterialPageRoute(builder: (_) => LoadingAnimation()),
+            //   ),
+            // ),
+
             Text(
               'version: 1.0.0',
               style: TextStyle(color: Colors.grey),

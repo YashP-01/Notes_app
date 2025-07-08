@@ -1,6 +1,9 @@
 import 'dart:convert';
 import 'dart:io';
-
+// import 'dart:nativewrappers/_internal/vm/lib/typed_data_patch.dart';
+import 'dart:typed_data' as td;   // Uint8List
+import 'package:db_practice/about_screen.dart';
+import 'package:db_practice/help_&_support.dart';
 import 'package:db_practice/themes/theme_provider.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
@@ -13,6 +16,8 @@ import 'package:dart_quill_delta/dart_quill_delta.dart';
 import 'package:path/path.dart' as p;
 import 'package:file_picker/file_picker.dart';
 import 'package:shared_preferences/shared_preferences.dart';
+import 'package:fluttertoast/fluttertoast.dart';
+import 'package:url_launcher/url_launcher.dart';
 
 
 
@@ -44,18 +49,9 @@ class _SettingsPageState extends State<SettingsPage> {
     });
   }
 
+
   Future<void> _exportNotes(BuildContext context) async {
     try {
-      if (Platform.isAndroid) {
-        var status = await Permission.storage.request();
-        if (!status.isGranted) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            SnackBar(content: Text('Storage permission denied')),
-          );
-          return;
-        }
-      }
-
       final notes = await dbRef!.getAllNotes();
 
       final buffer = StringBuffer();
@@ -67,38 +63,122 @@ class _SettingsPageState extends State<SettingsPage> {
         String content;
         try {
           final delta = Delta.fromJson(jsonDecode(deltaJson));
-          final doc = quill.Document.fromDelta(delta);
-          content = doc.toPlainText().trim();
-        } catch (e) {
+          final doc   = quill.Document.fromDelta(delta);
+          content     = doc.toPlainText().trim();
+        } catch (_) {
           content = '[Error parsing content]';
         }
 
-        buffer.writeln('Note no: $index');
-        buffer.writeln('Title: $title');
-        buffer.writeln('Description: $content');
-        buffer.writeln('---*---*---\n');
-
+        buffer
+          ..writeln('Note no: $index')
+          ..writeln('Title: $title')
+          ..writeln('Description: $content')
+          ..writeln('---*---*---\n');
         index++;
       }
 
+      // Turn the StringBuffer into bytes (UTF‑8)
+      final td.Uint8List txtBytes =
+      td.Uint8List.fromList(utf8.encode(buffer.toString()));
+      // final Uint8List txtBytes = Uint8List.fromList(utf8.encode(buffer.toString()));
 
-      // Write to public Downloads folder
-      final manualPath = '/storage/emulated/0/Download'; // Android-specific
-      final filePath = p.join(manualPath, 'exported_notes.txt');
-      final file = File(filePath);
-      await file.writeAsString(buffer.toString());
+      // Let the user pick where to save. On Android/iOS, the plugin
+      // immediately writes the supplied bytes and may return null.
+      final String? savedPath = await FilePicker.platform.saveFile(
+        dialogTitle: 'Save Exported Notes',
+        fileName: 'exported_notes.txt',
+        type: FileType.custom,
+        allowedExtensions: ['txt'],
+        bytes: txtBytes,            // <-- required on mobile
+      );
 
-      print("Notes exported successfully to $filePath");
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Notes exported to $filePath')),
+      if (savedPath == null) {
+        // User cancelled the dialog
+        return;
+      }
+
+      Fluttertoast.showToast(
+        msg: 'Notes exported successfully!',
+        backgroundColor: Colors.green,
+        textColor: Colors.white,
+        gravity: ToastGravity.BOTTOM,
+        toastLength: Toast.LENGTH_SHORT,
       );
     } catch (e) {
-      print('Export failed: $e');
+      debugPrint('Export failed: $e');
       ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(content: Text('Failed to export notes')),
+        const SnackBar(content: Text('Failed to export notes')),
       );
     }
   }
+
+  // Future<void> _exportNotes(BuildContext context) async {
+  //   try {
+  //     if (Platform.isAndroid) {
+  //       var status = await Permission.storage.request();
+  //       if (!status.isGranted) {
+  //         ScaffoldMessenger.of(context).showSnackBar(
+  //           SnackBar(content: Text('Storage permission denied')),
+  //         );
+  //         return;
+  //       }
+  //     }
+  //
+  //     final notes = await dbRef!.getAllNotes();
+  //
+  //     final buffer = StringBuffer();
+  //     int index = 1;
+  //     for (var note in notes) {
+  //       final title = note['title'];
+  //       final deltaJson = note['desc'];
+  //
+  //       String content;
+  //       try {
+  //         final delta = Delta.fromJson(jsonDecode(deltaJson));
+  //         final doc = quill.Document.fromDelta(delta);
+  //         content = doc.toPlainText().trim();
+  //       } catch (e) {
+  //         content = '[Error parsing content]';
+  //       }
+  //
+  //       buffer.writeln('Note no: $index');
+  //       buffer.writeln('Title: $title');
+  //       buffer.writeln('Description: $content');
+  //       buffer.writeln('---*---*---\n');
+  //
+  //       index++;
+  //     }
+  //
+  //
+  //     /// Write to public Downloads folder
+  //     // final manualPath = '/storage/emulated/0/Download'; // Android-specific
+  //     // final directory = await getExternalStorageDirectory(); // from path_provider
+  //     // final filePath = p.join(directory!.path, 'exported_notes.txt');
+  //     // final filePath = p.join(manualPath, 'exported_notes.txt');
+  //     final directory = Directory('/storage/emulated/0/Download');
+  //     final filePath = p.join(directory.path, 'exported_notes.txt');
+  //     final file = File(filePath);
+  //     await file.writeAsString(buffer.toString());
+  //
+  //     print("Notes exported successfully to $filePath");
+  //     Fluttertoast.showToast(
+  //       msg: 'Notes exported successfully!',
+  //       backgroundColor: Colors.green,
+  //       textColor: Colors.white,
+  //       gravity: ToastGravity.BOTTOM,
+  //       toastLength: Toast.LENGTH_SHORT,
+  //     );
+  //
+  //     // ScaffoldMessenger.of(context).showSnackBar(
+  //     //   SnackBar(content: Text('Notes exported to $filePath')),
+  //     // );
+  //   } catch (e) {
+  //     print('Export failed: $e');
+  //     ScaffoldMessenger.of(context).showSnackBar(
+  //       SnackBar(content: Text('Failed to export notes')),
+  //     );
+  //   }
+  // }
 
 
   Future<void> _importNotes(BuildContext context) async {
@@ -401,14 +481,16 @@ class _SettingsPageState extends State<SettingsPage> {
                 title: 'About',
                 subtitle: 'App version and information',
                 icon: Icons.info,
-                onTap: () => _showAboutDialog(context),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => AboutScreen())),
+                // onTap: () => _showAboutDialog(context),
               ),
               _buildListTile(
                 context,
                 title: 'Help & Support',
                 subtitle: 'Get help or contact support',
                 icon: Icons.help,
-                onTap: () => _showHelp(context),
+                onTap: () => Navigator.push(context, MaterialPageRoute(builder: (context) => HelpSupportScreen())),
+                // onTap: () => _showHelp(context),
               ),
               _buildListTile(
                 context,
@@ -701,30 +783,132 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  void _clearCache(BuildContext context) {
-    showDialog(
+  // void _clearCache(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Clear Cache'),
+  //       content: const Text('Are you sure you want to clear the app cache?'),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         TextButton(
+  //           onPressed: () {
+  //             Navigator.pop(context);
+  //             ScaffoldMessenger.of(context).showSnackBar(
+  //               const SnackBar(content: Text('Cache cleared successfully!')),
+  //             );
+  //           },
+  //           child: const Text('Clear'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
+
+  void _clearCache(BuildContext context) async {
+    final navigator = Navigator.of(context);
+    final scaffoldMessenger = ScaffoldMessenger.of(context);
+
+    final shouldClear = await showDialog<bool>(
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('Clear Cache'),
         content: const Text('Are you sure you want to clear the app cache?'),
         actions: [
           TextButton(
-            onPressed: () => Navigator.pop(context),
+            onPressed: () => navigator.pop(false),
             child: const Text('Cancel'),
           ),
           TextButton(
-            onPressed: () {
-              Navigator.pop(context);
-              ScaffoldMessenger.of(context).showSnackBar(
-                const SnackBar(content: Text('Cache cleared successfully!')),
-              );
-            },
+            onPressed: () => navigator.pop(true),
             child: const Text('Clear'),
           ),
         ],
       ),
     );
+
+    if (shouldClear != true) {
+      print('Cache clear canceled by user.');
+      return;
+    }
+
+    try {
+      final tempDir = await getTemporaryDirectory();
+      print('Temp dir path: ${tempDir.path}');
+
+      if (tempDir.existsSync()) {
+        final files = tempDir.listSync(recursive: true);
+        print('Found ${files.length} file(s)/folder(s) to delete.');
+
+        for (var file in files) {
+          try {
+            print('Trying to delete: ${file.path}');
+            if (file is File) {
+              await file.delete();
+              print('Deleted file: ${file.path}');
+            } else if (file is Directory) {
+              await file.delete(recursive: true);
+              print('Deleted directory: ${file.path}');
+            }
+          } catch (deleteError) {
+            print('Failed to delete ${file.path}: $deleteError');
+          }
+        }
+      } else {
+        print('Temp directory does not exist.');
+      }
+
+      scaffoldMessenger.showSnackBar(
+        const SnackBar(content: Text('Cache cleared successfully!')),
+      );
+    } catch (e) {
+      print('Exception while clearing cache: $e');
+      scaffoldMessenger.showSnackBar(
+        SnackBar(content: Text('Failed to clear cache: $e')),
+      );
+    }
   }
+
+
+  // void _clearCache(BuildContext context) {
+  //   showDialog(
+  //     context: context,
+  //     builder: (context) => AlertDialog(
+  //       title: const Text('Clear Cache'),
+  //       content: const Text('Are you sure you want to clear the app cache?'),
+  //       actions: [
+  //         TextButton(
+  //           onPressed: () => Navigator.pop(context),
+  //           child: const Text('Cancel'),
+  //         ),
+  //         TextButton(
+  //           onPressed: () async {
+  //             Navigator.pop(context);
+  //
+  //             try {
+  //               final cacheDir = await getTemporaryDirectory();
+  //               if (cacheDir.existsSync()) {
+  //                 cacheDir.deleteSync(recursive: true);
+  //               }
+  //
+  //               ScaffoldMessenger.of(context).showSnackBar(
+  //                 const SnackBar(content: Text('Cache cleared successfully!')),
+  //               );
+  //             } catch (e) {
+  //               ScaffoldMessenger.of(context).showSnackBar(
+  //                 SnackBar(content: Text('Failed to clear cache: $e')),
+  //               );
+  //             }
+  //           },
+  //           child: const Text('Clear'),
+  //         ),
+  //       ],
+  //     ),
+  //   );
+  // }
 
   void _showAboutDialog(BuildContext context) {
     showAboutDialog(
@@ -748,13 +932,39 @@ class _SettingsPageState extends State<SettingsPage> {
     );
   }
 
-  // void _showHelp(BuildContext context) {
-  void _rateApp(BuildContext context) {
-    // Implement app rating functionality
+  void _rateApp(BuildContext context) async {
+    const String androidAppId = 'com.example.expense_tracker'; // <-- Replace with the actual app ID
+    const String iOSAppId = 'id123456789'; // <-- Replace with your actual iOS App Store ID
+
+    final Uri uri = Uri.parse(
+      Theme.of(context).platform == TargetPlatform.android
+          ? 'https://play.google.com/store/apps/details?id=$androidAppId'
+          : 'https://apps.apple.com/app/$iOSAppId',
+    );
+
     ScaffoldMessenger.of(context).showSnackBar(
       const SnackBar(content: Text('Redirecting to app store...')),
     );
+
+    try {
+      if (await canLaunchUrl(uri)) {
+        await launchUrl(uri, mode: LaunchMode.externalApplication);
+      } else {
+        throw 'Could not launch store URL.';
+      }
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(content: Text('Failed to launch store page: $e')),
+      );
+    }
   }
+
+  // void _rateApp(BuildContext context) {
+  //   // Implement app rating functionality
+  //   ScaffoldMessenger.of(context).showSnackBar(
+  //     const SnackBar(content: Text('Redirecting to app store...')),
+  //   );
+  // }
 }
 
 

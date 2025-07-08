@@ -58,7 +58,7 @@ class _HomePageState extends State<HomePage> {
     //     if (mounted) setState(() {});
     //   });
     // });
-    loadAndApplySortOrder();
+    // loadAndApplySortOrder();
   }
 
 
@@ -69,29 +69,29 @@ class _HomePageState extends State<HomePage> {
     return DateFormat('dd MMM yyyy, hh:mm a').format(dt);
   }
 
-  Future<void> loadAndApplySortOrder() async {
-    final prefs = await SharedPreferences.getInstance();
-    final savedSortOrder = prefs.getString('sortOrder') ?? 'newest'; // default sort
-    await getNotes();
-    _sortNotes(savedSortOrder);
-  }
+  // Future<void> loadAndApplySortOrder() async {
+  //   final prefs = await SharedPreferences.getInstance();
+  //   final savedSortOrder = prefs.getString('sortOrder') ?? 'newest'; // default sort
+  //   await getNotes();
+  //   _sortNotes(savedSortOrder);
+  // }
 
-  void _sortNotes(String order) {
-    setState(() {
-      if (order == 'newest') {
-        filteredNotes.sort((a, b) => b['modifiedDate'].compareTo(a['modifiedDate']));
-      } else if (order == 'oldest') {
-        filteredNotes.sort((a, b) => a['modifiedDate'].compareTo(b['modifiedDate']));
-      }
-      // else if (order == 'az') {
-      //   filteredNotes.sort((a, b) =>
-      //       a['title'].toLowerCase().compareTo(b['title'].toLowerCase()));
-      // } else if (order == 'za') {
-      //   filteredNotes.sort((a, b) =>
-      //       b['title'].toLowerCase().compareTo(a['title'].toLowerCase()));
-      // }
-    });
-  }
+  // void _sortNotes(String order) {
+  //   setState(() {
+  //     if (order == 'newest') {
+  //       filteredNotes.sort((a, b) => b['modifiedDate'].compareTo(a['modifiedDate']));
+  //     } else if (order == 'oldest') {
+  //       filteredNotes.sort((a, b) => a['modifiedDate'].compareTo(b['modifiedDate']));
+  //     }
+  //     // else if (order == 'az') {
+  //     //   filteredNotes.sort((a, b) =>
+  //     //       a['title'].toLowerCase().compareTo(b['title'].toLowerCase()));
+  //     // } else if (order == 'za') {
+  //     //   filteredNotes.sort((a, b) =>
+  //     //       b['title'].toLowerCase().compareTo(a['title'].toLowerCase()));
+  //     // }
+  //   });
+  // }
 
   String getPlainTextFromDeltaJson(dynamic deltaJson) {
     try {
@@ -495,180 +495,6 @@ class _HomePageState extends State<HomePage> {
     );
   }
 
-  // @override
-  // Widget build(BuildContext context) {
-  //   return Scaffold(
-  //     backgroundColor: Theme.of(context).colorScheme.surface,
-  //     appBar: AppBar(
-  //       title: isSearching
-  //           ? TextField(
-  //         controller: searchController,
-  //         decoration: InputDecoration(hintText: 'Search notes...'),
-  //         onChanged: _filterNotes,
-  //       )
-  //           : Center(
-  //         child: Text(
-  //           'Notes',
-  //           style: TextStyle(fontFamily: 'BethEllen'),
-  //         ),
-  //       ),
-  //       actions: [
-  //         isSearching
-  //             ? IconButton(
-  //           icon: Icon(Icons.clear),
-  //           onPressed: _stopSearch,
-  //         )
-  //             : IconButton(
-  //           icon: Icon(Icons.search),
-  //           onPressed: _startSearch,
-  //         ),
-  //       ],
-  //     ),
-  //     drawer: const MyDrawer(),
-  //
-  //     body: RefreshIndicator.adaptive(
-  //       onRefresh: () async {
-  //         await getNotes(); // Your DB fetch method
-  //       },
-  //       child: filteredNotes.isNotEmpty
-  //           ? CustomScrollView(
-  //         slivers: [
-  //           SliverPadding(
-  //             padding: EdgeInsets.all(10),
-  //             sliver: SliverStaggeredGrid.countBuilder(
-  //               crossAxisCount: 2,
-  //               itemCount: filteredNotes.length,
-  //               staggeredTileBuilder: (index) => StaggeredTile.fit(1),
-  //               mainAxisSpacing: 7,
-  //               crossAxisSpacing: 3,
-  //               itemBuilder: (context, index) {
-  //                 return GestureDetector(
-  //                   onTap: () {
-  //                     /// On tap, navigate to the EditPage
-  //                     Navigator.push(
-  //                       context,
-  //                       MaterialPageRoute(
-  //                         builder: (context) => EditPage(
-  //                           title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-  //                           description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-  //                           sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
-  //                         ),
-  //                       ),
-  //                     ).then((value){
-  //                       if(value == true){
-  //                         getNotes();
-  //                       }
-  //                     });
-  //                   },
-  //                   onLongPress: () {
-  //                     // Show the confirmation dialog for deleting the note
-  //                     _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
-  //                   },
-  //
-  //                   child: Card(
-  //                     elevation: 4,
-  //                     child: Column(
-  //                       children: [
-  //                         ListTile(
-  //                           title: Row(
-  //                             children: [
-  //                               /// notes index
-  //                               Text(
-  //                                 '${index + 1}',
-  //                                 style: TextStyle(
-  //                                   fontSize: 15,
-  //                                 ),
-  //                               ),
-  //
-  //                               SizedBox(width: 8,),
-  //                               /// notes title
-  //                               Expanded(
-  //                                 child: Text(
-  //                                   overflow: TextOverflow.ellipsis,
-  //                                   maxLines: 2,
-  //                                   filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
-  //                                   style: TextStyle(
-  //                                     fontSize: 19,
-  //                                     fontFamily: 'Smooch',
-  //                                     fontWeight: FontWeight.w500,
-  //                                   ),
-  //                                 ),
-  //                               ),
-  //                             ],
-  //                           ),
-  //                           /// notes description
-  //                           subtitle: Padding(
-  //                             padding: const EdgeInsets.only(left: 16.0),
-  //                             child: Text(
-  //                               filteredNotes[index][DBHelper.COLUMN_NOTE_DESC] != null &&
-  //                                   filteredNotes[index][DBHelper.COLUMN_NOTE_DESC].toString().trim().isNotEmpty
-  //                                   ? getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC])
-  //                                   : '', // fallback text if null or invalid
-  //                               maxLines: 5,
-  //                               overflow: TextOverflow.ellipsis,
-  //                               style: TextStyle(
-  //                                 fontSize: 14,
-  //                                 fontFamily: 'Roboto',
-  //                                 fontWeight: FontWeight.w500,
-  //                               ),
-  //                             ),
-  //                           ),
-  //
-  //                           // subtitle: Padding(
-  //                           //   padding: const EdgeInsets.only(left: 16.0),
-  //                           //   child: Text(
-  //                           //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
-  //                           //     maxLines: 9,
-  //                           //     style: TextStyle(
-  //                           //       fontSize: 14,
-  //                           //       fontFamily: 'Roboto',
-  //                           //       fontWeight: FontWeight.w500,
-  //                           //     ),
-  //                           //   ),
-  //                           // ),
-  //                         ),
-  //
-  //                       ],
-  //                     ),
-  //                   ),
-  //                 );
-  //               },
-  //             ),
-  //           ),
-  //         ],
-  //       )
-  //           : Center(
-  //         child: Text(
-  //           'No Notes yet!!',
-  //           style: TextStyle(fontFamily: 'BethEllen'),
-  //         ),
-  //       ),
-  //     ),
-  //
-  //     floatingActionButton: FloatingActionButton(
-  //       backgroundColor: Colors.teal[400],
-  //       onPressed: () async {
-  //         // Add note - open the same bottom sheet to add a new note
-  //         showModalBottomSheet(
-  //           context: context,
-  //           isScrollControlled: true,
-  //           useSafeArea: true,
-  //           builder: (context) {
-  //             titleController.clear();
-  //             descController.clear();
-  //             return getBottomSheetWidget();
-  //           },
-  //         );
-  //       },
-  //       child: Icon(
-  //         Icons.add,
-  //         color: Colors.white,
-  //         // color: Colors.grey.shade700,
-  //       ),
-  //     ),
-  //   );
-  // }
-
   Widget getBottomSheetWidget({bool isUpdate = false, int sno = 0}) {
     // Define a form key to control the form validation
     final GlobalKey<FormState> _formKey = GlobalKey<FormState>();
@@ -814,7 +640,179 @@ class _HomePageState extends State<HomePage> {
 }
 
 
-
+// @override
+// Widget build(BuildContext context) {
+//   return Scaffold(
+//     backgroundColor: Theme.of(context).colorScheme.surface,
+//     appBar: AppBar(
+//       title: isSearching
+//           ? TextField(
+//         controller: searchController,
+//         decoration: InputDecoration(hintText: 'Search notes...'),
+//         onChanged: _filterNotes,
+//       )
+//           : Center(
+//         child: Text(
+//           'Notes',
+//           style: TextStyle(fontFamily: 'BethEllen'),
+//         ),
+//       ),
+//       actions: [
+//         isSearching
+//             ? IconButton(
+//           icon: Icon(Icons.clear),
+//           onPressed: _stopSearch,
+//         )
+//             : IconButton(
+//           icon: Icon(Icons.search),
+//           onPressed: _startSearch,
+//         ),
+//       ],
+//     ),
+//     drawer: const MyDrawer(),
+//
+//     body: RefreshIndicator.adaptive(
+//       onRefresh: () async {
+//         await getNotes(); // Your DB fetch method
+//       },
+//       child: filteredNotes.isNotEmpty
+//           ? CustomScrollView(
+//         slivers: [
+//           SliverPadding(
+//             padding: EdgeInsets.all(10),
+//             sliver: SliverStaggeredGrid.countBuilder(
+//               crossAxisCount: 2,
+//               itemCount: filteredNotes.length,
+//               staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+//               mainAxisSpacing: 7,
+//               crossAxisSpacing: 3,
+//               itemBuilder: (context, index) {
+//                 return GestureDetector(
+//                   onTap: () {
+//                     /// On tap, navigate to the EditPage
+//                     Navigator.push(
+//                       context,
+//                       MaterialPageRoute(
+//                         builder: (context) => EditPage(
+//                           title: filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+//                           description: filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+//                           sno: filteredNotes[index][DBHelper.COLUMN_NOTE_SNO],
+//                         ),
+//                       ),
+//                     ).then((value){
+//                       if(value == true){
+//                         getNotes();
+//                       }
+//                     });
+//                   },
+//                   onLongPress: () {
+//                     // Show the confirmation dialog for deleting the note
+//                     _confirmDelete(filteredNotes[index][DBHelper.COLUMN_NOTE_SNO]);
+//                   },
+//
+//                   child: Card(
+//                     elevation: 4,
+//                     child: Column(
+//                       children: [
+//                         ListTile(
+//                           title: Row(
+//                             children: [
+//                               /// notes index
+//                               Text(
+//                                 '${index + 1}',
+//                                 style: TextStyle(
+//                                   fontSize: 15,
+//                                 ),
+//                               ),
+//
+//                               SizedBox(width: 8,),
+//                               /// notes title
+//                               Expanded(
+//                                 child: Text(
+//                                   overflow: TextOverflow.ellipsis,
+//                                   maxLines: 2,
+//                                   filteredNotes[index][DBHelper.COLUMN_NOTE_TITLE],
+//                                   style: TextStyle(
+//                                     fontSize: 19,
+//                                     fontFamily: 'Smooch',
+//                                     fontWeight: FontWeight.w500,
+//                                   ),
+//                                 ),
+//                               ),
+//                             ],
+//                           ),
+//                           /// notes description
+//                           subtitle: Padding(
+//                             padding: const EdgeInsets.only(left: 16.0),
+//                             child: Text(
+//                               filteredNotes[index][DBHelper.COLUMN_NOTE_DESC] != null &&
+//                                   filteredNotes[index][DBHelper.COLUMN_NOTE_DESC].toString().trim().isNotEmpty
+//                                   ? getPlainTextFromDeltaJson(filteredNotes[index][DBHelper.COLUMN_NOTE_DESC])
+//                                   : '', // fallback text if null or invalid
+//                               maxLines: 5,
+//                               overflow: TextOverflow.ellipsis,
+//                               style: TextStyle(
+//                                 fontSize: 14,
+//                                 fontFamily: 'Roboto',
+//                                 fontWeight: FontWeight.w500,
+//                               ),
+//                             ),
+//                           ),
+//
+//                           // subtitle: Padding(
+//                           //   padding: const EdgeInsets.only(left: 16.0),
+//                           //   child: Text(
+//                           //     filteredNotes[index][DBHelper.COLUMN_NOTE_DESC],
+//                           //     maxLines: 9,
+//                           //     style: TextStyle(
+//                           //       fontSize: 14,
+//                           //       fontFamily: 'Roboto',
+//                           //       fontWeight: FontWeight.w500,
+//                           //     ),
+//                           //   ),
+//                           // ),
+//                         ),
+//
+//                       ],
+//                     ),
+//                   ),
+//                 );
+//               },
+//             ),
+//           ),
+//         ],
+//       )
+//           : Center(
+//         child: Text(
+//           'No Notes yet!!',
+//           style: TextStyle(fontFamily: 'BethEllen'),
+//         ),
+//       ),
+//     ),
+//
+//     floatingActionButton: FloatingActionButton(
+//       backgroundColor: Colors.teal[400],
+//       onPressed: () async {
+//         // Add note - open the same bottom sheet to add a new note
+//         showModalBottomSheet(
+//           context: context,
+//           isScrollControlled: true,
+//           useSafeArea: true,
+//           builder: (context) {
+//             titleController.clear();
+//             descController.clear();
+//             return getBottomSheetWidget();
+//           },
+//         );
+//       },
+//       child: Icon(
+//         Icons.add,
+//         color: Colors.white,
+//         // color: Colors.grey.shade700,
+//       ),
+//     ),
+//   );
+// }
 
 
 
