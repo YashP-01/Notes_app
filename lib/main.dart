@@ -3,10 +3,23 @@ import 'package:db_practice/themes/theme_provider.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_localizations/flutter_localizations.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
+import 'package:google_mobile_ads/google_mobile_ads.dart';
 import 'package:provider/provider.dart';
 
-void main() {
+Future <void> main() async {
   WidgetsFlutterBinding.ensureInitialized();
+
+  // await MobileAds.instance.updateRequestConfiguration(
+    // RequestConfiguration(
+      // testDeviceIds: ["BC86D04C0210CB920538FF80032D05A2"], // Your test device ID
+      // You can also set maxAdContentRating and tagForChildDirectedTreatment here if needed
+      // maxAdContentRating: MaxAdContentRating.pg,
+      // tagForChildDirectedTreatment: TagForChildDirectedTreatment.yes,
+    // ),
+  // );
+
+  /// await MobileAds.instance.initialize();
+
   runApp(
     ChangeNotifierProvider(
       create: (_) => ThemeProvider(),

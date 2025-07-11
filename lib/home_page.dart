@@ -3,6 +3,7 @@ import 'package:db_practice/data/local/db_helper.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_staggered_grid_view/flutter_staggered_grid_view.dart';
 import 'package:intl/intl.dart';
+import 'component/AdBannerWidget.dart';
 import 'edit_page.dart';
 import 'package:flutter_quill/flutter_quill.dart' as quill;
 import 'package:dart_quill_delta/dart_quill_delta.dart';
@@ -348,133 +349,140 @@ class _HomePageState extends State<HomePage> {
           });
         },
       ),
-      body: RefreshIndicator.adaptive(
-        onRefresh: () async {
-          await getNotes();
-        },
-        child: filteredNotes.isNotEmpty
-            ? CustomScrollView(
-          slivers: [
-            SliverPadding(
-              padding: EdgeInsets.all(10),
-              sliver: SliverStaggeredGrid.countBuilder(
-                crossAxisCount: 2,
-                // crossAxisCount: isGridView ? 2 : 1,
-                itemCount: filteredNotes.length,
-                // staggeredTileBuilder: (index) => StaggeredTile.fit(1),
-                // staggeredTileBuilder: (index) =>
-                // isGridView ? StaggeredTile.fit(1) : StaggeredTile.extent(1, 2),
-                staggeredTileBuilder: (index) => StaggeredTile.fit(isGridView ? 1 : 2),
-                mainAxisSpacing: 7,
-                crossAxisSpacing: isGridView ? 3 : 0,
-                itemBuilder: (context, index) {
-                  final note = filteredNotes[index];
-                  final sno = note[DBHelper.COLUMN_NOTE_SNO];
-                  final isSelected = selectedNoteSno.contains(sno);
+      body: Column(
+        children: [
+          // const AdBannerWidget(),
+          Expanded(
+            child: RefreshIndicator.adaptive(
+              onRefresh: () async {
+                await getNotes();
+              },
+              child: filteredNotes.isNotEmpty
+                  ? CustomScrollView(
+                slivers: [
+                  SliverPadding(
+                    padding: EdgeInsets.all(10),
+                    sliver: SliverStaggeredGrid.countBuilder(
+                      crossAxisCount: 2,
+                      // crossAxisCount: isGridView ? 2 : 1,
+                      itemCount: filteredNotes.length,
+                      // staggeredTileBuilder: (index) => StaggeredTile.fit(1),
+                      // staggeredTileBuilder: (index) =>
+                      // isGridView ? StaggeredTile.fit(1) : StaggeredTile.extent(1, 2),
+                      staggeredTileBuilder: (index) => StaggeredTile.fit(isGridView ? 1 : 2),
+                      mainAxisSpacing: 7,
+                      crossAxisSpacing: isGridView ? 3 : 0,
+                      itemBuilder: (context, index) {
+                        final note = filteredNotes[index];
+                        final sno = note[DBHelper.COLUMN_NOTE_SNO];
+                        final isSelected = selectedNoteSno.contains(sno);
 
-                  return GestureDetector(
-                    onTap: () {
-                      if (isMultiSelectMode) {
-                        setState(() {
-                          if (isSelected) {
-                            selectedNoteSno.remove(sno);
-                          } else {
-                            selectedNoteSno.add(sno);
-                          }
-                          // Exit multi-select mode automatically if no notes are selected
-                          if (selectedNoteSno.isEmpty) {
-                            isMultiSelectMode = false;
-                          }
-                        });
-                      } else {
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => EditPage(
-                              title: note[DBHelper.COLUMN_NOTE_TITLE],
-                              description: note[DBHelper.COLUMN_NOTE_DESC],
-                              sno: sno,
-                            ),
-                          ),
-                        ).then((value) {
-                          if (value == true) {
-                            getNotes();
-                          }
-                        });
-                      }
-                    },
-                    onLongPress: () {
-                      if (!isMultiSelectMode) {
-                        setState(() {
-                          isMultiSelectMode = true;
-                          selectedNoteSno.add(sno);
-                        });
-                      }
-                    },
-                    child: Card(
-                      margin: EdgeInsets.symmetric(horizontal: isGridView ? 0 : 5, vertical: 3),
-                      elevation: 4,
-                      color: isSelected ? Colors.red[200] : null,
-                      child: Column(
-                        children: [
-                          ListTile(
-                            title: Row(
-                              children: [
-                                Text(
-                                  '${index + 1}',
-                                  style: TextStyle(fontSize: 15),
+                        return GestureDetector(
+                          onTap: () {
+                            if (isMultiSelectMode) {
+                              setState(() {
+                                if (isSelected) {
+                                  selectedNoteSno.remove(sno);
+                                } else {
+                                  selectedNoteSno.add(sno);
+                                }
+                                // Exit multi-select mode automatically if no notes are selected
+                                if (selectedNoteSno.isEmpty) {
+                                  isMultiSelectMode = false;
+                                }
+                              });
+                            } else {
+                              Navigator.push(
+                                context,
+                                MaterialPageRoute(
+                                  builder: (context) => EditPage(
+                                    title: note[DBHelper.COLUMN_NOTE_TITLE],
+                                    description: note[DBHelper.COLUMN_NOTE_DESC],
+                                    sno: sno,
+                                  ),
                                 ),
-                                SizedBox(width: 8),
-                                Expanded(
-                                  child: Text(
-                                    overflow: TextOverflow.ellipsis,
-                                    maxLines: 2,
-                                    note[DBHelper.COLUMN_NOTE_TITLE],
-                                    style: TextStyle(
-                                      fontSize: 19,
-                                      fontFamily: 'Smooch',
-                                      fontWeight: FontWeight.w500,
+                              ).then((value) {
+                                if (value == true) {
+                                  getNotes();
+                                }
+                              });
+                            }
+                          },
+                          onLongPress: () {
+                            if (!isMultiSelectMode) {
+                              setState(() {
+                                isMultiSelectMode = true;
+                                selectedNoteSno.add(sno);
+                              });
+                            }
+                          },
+                          child: Card(
+                            margin: EdgeInsets.symmetric(horizontal: isGridView ? 0 : 5, vertical: 3),
+                            elevation: 4,
+                            color: isSelected ? Colors.red[200] : null,
+                            child: Column(
+                              children: [
+                                ListTile(
+                                  title: Row(
+                                    children: [
+                                      Text(
+                                        '${index + 1}',
+                                        style: TextStyle(fontSize: 15),
+                                      ),
+                                      SizedBox(width: 8),
+                                      Expanded(
+                                        child: Text(
+                                          overflow: TextOverflow.ellipsis,
+                                          maxLines: 2,
+                                          note[DBHelper.COLUMN_NOTE_TITLE],
+                                          style: TextStyle(
+                                            fontSize: 19,
+                                            fontFamily: 'Smooch',
+                                            fontWeight: FontWeight.w500,
+                                          ),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                  subtitle: Padding(
+                                    padding: const EdgeInsets.only(left: 16.0),
+                                    child: Text(
+                                      note[DBHelper.COLUMN_NOTE_DESC] != null &&
+                                          note[DBHelper.COLUMN_NOTE_DESC]
+                                              .toString()
+                                              .trim()
+                                              .isNotEmpty
+                                          ? getPlainTextFromDeltaJson(note[
+                                      DBHelper.COLUMN_NOTE_DESC])
+                                          : '',
+                                      maxLines: 5,
+                                      overflow: TextOverflow.ellipsis,
+                                      style: TextStyle(
+                                        fontSize: 14,
+                                        fontFamily: 'Roboto',
+                                        fontWeight: FontWeight.w500,
+                                      ),
                                     ),
                                   ),
                                 ),
                               ],
                             ),
-                            subtitle: Padding(
-                              padding: const EdgeInsets.only(left: 16.0),
-                              child: Text(
-                                note[DBHelper.COLUMN_NOTE_DESC] != null &&
-                                    note[DBHelper.COLUMN_NOTE_DESC]
-                                        .toString()
-                                        .trim()
-                                        .isNotEmpty
-                                    ? getPlainTextFromDeltaJson(note[
-                                DBHelper.COLUMN_NOTE_DESC])
-                                    : '',
-                                maxLines: 5,
-                                overflow: TextOverflow.ellipsis,
-                                style: TextStyle(
-                                  fontSize: 14,
-                                  fontFamily: 'Roboto',
-                                  fontWeight: FontWeight.w500,
-                                ),
-                              ),
-                            ),
                           ),
-                        ],
-                      ),
+                        );
+                      },
                     ),
-                  );
-                },
+                  ),
+                ],
+              )
+                  : Center(
+                child: Text(
+                  'No Notes yet!!',
+                  style: TextStyle(fontFamily: 'BethEllen'),
+                ),
               ),
             ),
-          ],
-        )
-            : Center(
-          child: Text(
-            'No Notes yet!!',
-            style: TextStyle(fontFamily: 'BethEllen'),
           ),
-        ),
+        ],
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.teal[400],
